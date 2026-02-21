@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop — Jacopo Peca</title>
+  <meta name="description" content="Acquista l'abbigliamento streetwear handcrafted di Jacopo Peca. Felpe, T-shirt, Jeans, Giacche Denim e personalizzazioni.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__socials">
+        <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+      </div>
+      <span class="topbar__text">Spedizione gratuita sopra €100 &mdash; Fatto a mano in Italia</span>
+      <a href="https://wa.me/39XXXXXXXXXX" class="topbar__whatsapp">
+        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <nav class="nav">
+      <a href="index.html" class="nav__logo">Jacopo<span>Peca</span></a>
+      <ul class="nav__menu">
+        <li class="nav__item"><a href="index.html" class="nav__link">Home</a></li>
+        <li class="nav__item">
+          <a href="shop.html" class="nav__link active">Shop <i class="fa-solid fa-chevron-down" style="font-size:9px;"></i></a>
+          <ul class="nav__dropdown">
+            <li><a href="shop.html?cat=felpe">Felpe</a></li>
+            <li><a href="shop.html?cat=tshirt">T-Shirt</a></li>
+            <li><a href="shop.html?cat=pantaloni">Pantaloni</a></li>
+            <li><a href="shop.html?cat=jeans">Jeans</a></li>
+            <li><a href="shop.html?cat=giacche">Giacche</a></li>
+            <li><a href="shop.html?cat=giacche-denim">Giacche Denim</a></li>
+            <li><a href="shop.html?cat=camicie-denim">Camicie Denim</a></li>
+            <li><a href="shop.html?cat=cappelli">Cappelli</a></li>
+          </ul>
+        </li>
+        <li class="nav__item"><a href="shop.html?cat=denim-customize" class="nav__link nav__link--highlight">Denim Customize</a></li>
+        <li class="nav__item"><a href="index.html#about" class="nav__link">Chi sono</a></li>
+        <li class="nav__item"><a href="index.html#contatti" class="nav__link">Contatti</a></li>
+      </ul>
+      <div class="nav__actions">
+        <button class="nav__icon-btn" aria-label="Cerca"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <a href="cart.html" class="nav__icon-btn" aria-label="Carrello">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-count" style="display:none;">0</span>
+        </a>
+        <button class="nav__hamburger" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" role="dialog">
+    <button class="mobile-menu__close">&times;</button>
+    <nav class="mobile-menu__nav">
+      <a href="index.html">Home</a>
+      <a href="shop.html">Shop</a>
+      <div class="mobile-menu__sub">
+        <a href="shop.html?cat=felpe">Felpe</a>
+        <a href="shop.html?cat=tshirt">T-Shirt</a>
+        <a href="shop.html?cat=jeans">Jeans</a>
+        <a href="shop.html?cat=giacche">Giacche</a>
+        <a href="shop.html?cat=cappelli">Cappelli</a>
+      </div>
+      <a href="shop.html?cat=denim-customize" style="color:var(--orange);">Denim Customize</a>
+      <a href="cart.html">Carrello</a>
+    </nav>
+  </div>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb">
+    <div class="breadcrumb__inner">
+      <a href="index.html">Home</a>
+      <i class="fa-solid fa-chevron-right"></i>
+      <span>Shop</span>
+    </div>
+  </div>
+
+  <!-- SHOP HERO -->
+  <div class="shop-hero">
+    <div class="container">
+      <h1 class="section-title">Tutti i prodotti</h1>
+      <p>Abbigliamento handcrafted — fatto a mano con passione</p>
+    </div>
+  </div>
+
+  <!-- SHOP LAYOUT -->
+  <div style="background: var(--black);">
+    <div class="shop-layout">
+
+      <!-- SIDEBAR FILTRI -->
+      <aside class="filters" aria-label="Filtri">
+
+        <!-- Categorie -->
+        <div class="filter-group">
+          <div class="filter-group__title">
+            Categoria <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="filter-options">
+            <label class="filter-option">
+              <input type="checkbox"> Felpe <span class="filter-option__count">12</span>
+            </label>
+            <label class="filter-option">
+              <input type="checkbox"> T-Shirt <span class="filter-option__count">8</span>
+            </label>
+            <label class="filter-option">
+              <input type="checkbox"> Jeans <span class="filter-option__count">10</span>
+            </label>
+            <label class="filter-option">
+              <input type="checkbox"> Pantaloni <span class="filter-option__count">6</span>
+            </label>
+            <label class="filter-option">
+              <input type="checkbox"> Giacche <span class="filter-option__count">5</span>
+            </label>
+            <label class="filter-option">
+              <input type="checkbox"> Giacche Denim <span class="filter-option__count">9</span>
+            </label>
+            <label class="filter-option">
+              <input type="checkbox"> Camicie Denim <span class="filter-option__count">7</span>
+            </label>
+            <label class="filter-option">
+              <input type="checkbox"> Cappelli <span class="filter-option__count">4</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Taglia -->
+        <div class="filter-group">
+          <div class="filter-group__title">
+            Taglia <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="filter-options">
+            <label class="filter-option"><input type="checkbox"> XS</label>
+            <label class="filter-option"><input type="checkbox"> S</label>
+            <label class="filter-option"><input type="checkbox"> M</label>
+            <label class="filter-option"><input type="checkbox"> L</label>
+            <label class="filter-option"><input type="checkbox"> XL</label>
+            <label class="filter-option"><input type="checkbox"> XXL</label>
+          </div>
+        </div>
+
+        <!-- Prezzo -->
+        <div class="filter-group">
+          <div class="filter-group__title">
+            Prezzo <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="price-inputs">
+            <input type="number" placeholder="Min" min="0">
+            <span>—</span>
+            <input type="number" placeholder="Max" min="0">
+          </div>
+        </div>
+
+        <!-- Disponibilità -->
+        <div class="filter-group">
+          <div class="filter-group__title">
+            Disponibilità <i class="fa-solid fa-chevron-down"></i>
+          </div>
+          <div class="filter-options">
+            <label class="filter-option"><input type="checkbox"> In stock</label>
+            <label class="filter-option"><input type="checkbox"> Esaurito</label>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button class="btn btn-outline-red btn-sm btn-full">Applica filtri</button>
+        </div>
+        <div style="margin-top:8px;">
+          <button class="btn btn-secondary btn-sm btn-full">Reset filtri</button>
+        </div>
+
+      </aside>
+
+      <!-- PRODOTTI -->
+      <main>
+
+        <!-- Toolbar -->
+        <div class="shop-toolbar">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <!-- Filter toggle mobile -->
+            <button class="btn btn-secondary btn-sm filter-toggle-btn" style="display:none;">
+              <i class="fa-solid fa-sliders"></i> Filtri
+            </button>
+            <span class="shop-toolbar__count">61 prodotti</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="shop-toolbar__view">
+              <button class="view-btn active" data-view="grid" title="Griglia"><i class="fa-solid fa-grip"></i></button>
+              <button class="view-btn" data-view="list" title="Lista"><i class="fa-solid fa-list"></i></button>
+            </div>
+            <div class="shop-toolbar__sort" style="position:relative;">
+              <select aria-label="Ordina per">
+                <option>Ordina per: Novità</option>
+                <option>Prezzo: crescente</option>
+                <option>Prezzo: decrescente</option>
+                <option>Popolarità</option>
+                <option>Nome A–Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Griglia prodotti -->
+        <div class="products-grid">
+
+          <!-- 12 product cards -->
+          <div class="product-card" data-product data-product-id="s001" data-product-name="Felpa Oversize Logo" data-product-price="79.00">
+            <span class="product-card__badge">Nuovo</span>
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 1</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Felpe</p>
+              <h3 class="product-card__name">Felpa Oversize Logo #001</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€79,00</span>
+                <button class="product-card__add" data-add-cart aria-label="Aggiungi"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s002" data-product-name="T-Shirt Grafica #002" data-product-price="45.00">
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 2</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">T-Shirt</p>
+              <h3 class="product-card__name">T-Shirt Grafica #002</h3>
+              <div class="product-card__footer">
+                <div><span class="product-card__price">€45,00</span><span class="product-card__price--old">€60,00</span></div>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s003" data-product-name="Jeans Slim Handcrafted" data-product-price="119.00">
+            <span class="product-card__badge">Bestseller</span>
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 3</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Jeans</p>
+              <h3 class="product-card__name">Jeans Slim Handcrafted #003</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€119,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s004" data-product-name="Giacca Denim Custom" data-product-price="149.00">
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 4</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Giacche Denim</p>
+              <h3 class="product-card__name">Giacca Denim Custom #004</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€149,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s005" data-product-name="Camicia Denim #005" data-product-price="95.00">
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 5</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Camicie Denim</p>
+              <h3 class="product-card__name">Camicia Denim #005</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€95,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s006" data-product-name="Pantaloni Cargo #006" data-product-price="89.00">
+            <span class="product-card__badge product-card__badge--sold">Esaurito</span>
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 6</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Pantaloni</p>
+              <h3 class="product-card__name">Pantaloni Cargo #006</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€89,00</span>
+                <button class="product-card__add" disabled><i class="fa-solid fa-ban"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s007" data-product-name="Cappello Ricamato #007" data-product-price="35.00">
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 7</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Cappelli</p>
+              <h3 class="product-card__name">Cappello Ricamato #007</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€35,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s008" data-product-name="Giacca Cargo Denim #008" data-product-price="165.00">
+            <span class="product-card__badge">Nuovo</span>
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 8</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Giacche</p>
+              <h3 class="product-card__name">Giacca Cargo Denim #008</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€165,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s009" data-product-name="Felpa Zip Denim #009" data-product-price="99.00">
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 9</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Felpe</p>
+              <h3 class="product-card__name">Felpa Zip Denim #009</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€99,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s010" data-product-name="Jeans Wide Leg #010" data-product-price="129.00">
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 10</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Jeans</p>
+              <h3 class="product-card__name">Jeans Wide Leg #010</h3>
+              <div class="product-card__footer">
+                <div><span class="product-card__price">€129,00</span><span class="product-card__price--old">€159,00</span></div>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s011" data-product-name="T-Shirt Tie-Dye #011" data-product-price="55.00">
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 11</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">T-Shirt</p>
+              <h3 class="product-card__name">T-Shirt Tie-Dye #011</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€55,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card" data-product data-product-id="s012" data-product-name="Camicia Denim Oversize #012" data-product-price="110.00">
+            <span class="product-card__badge">Nuovo</span>
+            <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Prodotto 12</span>
+              <div class="product-card__img-overlay"><button class="product-card__quick-view">Vista rapida</button></div>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__category">Camicie Denim</p>
+              <h3 class="product-card__name">Camicia Denim Oversize #012</h3>
+              <div class="product-card__footer">
+                <span class="product-card__price">€110,00</span>
+                <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /products-grid -->
+
+        <!-- PAGINATION -->
+        <div class="pagination">
+          <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">4</button>
+          <button class="page-btn">5</button>
+          <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+
+      </main>
+    </div><!-- /shop-layout -->
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="index.html" class="nav__logo">Jacopo<span>Peca</span></a>
+        <p>Abbigliamento streetwear handcrafted in denim. Fatto a mano nel mio laboratorio a Montesilvano, Italia.</p>
+        <div class="footer__socials">
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-tiktok"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-whatsapp"></i></a>
+        </div>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Shop</h4>
+        <ul class="footer__links">
+          <li><a href="shop.html">Tutti i prodotti</a></li>
+          <li><a href="shop.html?cat=felpe">Felpe</a></li>
+          <li><a href="shop.html?cat=jeans">Jeans</a></li>
+          <li><a href="shop.html?cat=giacche-denim">Giacche Denim</a></li>
+          <li><a href="shop.html?cat=denim-customize">Denim Customize</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Info</h4>
+        <ul class="footer__links">
+          <li><a href="#">Chi sono</a></li>
+          <li><a href="#">Spedizioni</a></li>
+          <li><a href="#">Resi e cambi</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Termini e condizioni</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Contatti</h4>
+        <div class="footer__contact-item"><i class="fa-solid fa-location-dot"></i><span>Montesilvano (PE), Italia</span></div>
+        <div class="footer__contact-item"><i class="fa-solid fa-envelope"></i><span>info@jacopopeca.com</span></div>
+        <div class="footer__contact-item"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp disponibile</span></div>
+      </div>
+    </div>
+    <div class="footer__bottom">&copy; 2024 Jacopo Peca. Tutti i diritti riservati.</div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    // Show filter toggle on mobile
+    if (window.innerWidth <= 768) {
+      document.querySelector('.filter-toggle-btn').style.display = 'inline-flex';
+    }
+    window.addEventListener('resize', () => {
+      const btn = document.querySelector('.filter-toggle-btn');
+      if (btn) btn.style.display = window.innerWidth <= 768 ? 'inline-flex' : 'none';
+    });
+  </script>
+</body>
+</html>

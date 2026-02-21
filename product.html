@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giacca Denim Customizzata — Jacopo Peca</title>
+  <meta name="description" content="Giacca denim handcrafted, lavorata a mano. Pezzo unico con personalizzazioni artigianali.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__socials">
+        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="#"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#"><i class="fa-brands fa-tiktok"></i></a>
+      </div>
+      <span class="topbar__text">Spedizione gratuita sopra €100 &mdash; Fatto a mano in Italia</span>
+      <a href="https://wa.me/39XXXXXXXXXX" class="topbar__whatsapp">
+        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <nav class="nav">
+      <a href="index.html" class="nav__logo">Jacopo<span>Peca</span></a>
+      <ul class="nav__menu">
+        <li class="nav__item"><a href="index.html" class="nav__link">Home</a></li>
+        <li class="nav__item">
+          <a href="shop.html" class="nav__link active">Shop <i class="fa-solid fa-chevron-down" style="font-size:9px;"></i></a>
+          <ul class="nav__dropdown">
+            <li><a href="shop.html?cat=felpe">Felpe</a></li>
+            <li><a href="shop.html?cat=tshirt">T-Shirt</a></li>
+            <li><a href="shop.html?cat=pantaloni">Pantaloni</a></li>
+            <li><a href="shop.html?cat=jeans">Jeans</a></li>
+            <li><a href="shop.html?cat=giacche">Giacche</a></li>
+            <li><a href="shop.html?cat=giacche-denim">Giacche Denim</a></li>
+            <li><a href="shop.html?cat=camicie-denim">Camicie Denim</a></li>
+            <li><a href="shop.html?cat=cappelli">Cappelli</a></li>
+          </ul>
+        </li>
+        <li class="nav__item"><a href="shop.html?cat=denim-customize" class="nav__link nav__link--highlight">Denim Customize</a></li>
+        <li class="nav__item"><a href="index.html#about" class="nav__link">Chi sono</a></li>
+        <li class="nav__item"><a href="index.html#contatti" class="nav__link">Contatti</a></li>
+      </ul>
+      <div class="nav__actions">
+        <button class="nav__icon-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <a href="cart.html" class="nav__icon-btn">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-count" style="display:none;">0</span>
+        </a>
+        <button class="nav__hamburger"><span></span><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu">
+    <button class="mobile-menu__close">&times;</button>
+    <nav class="mobile-menu__nav">
+      <a href="index.html">Home</a>
+      <a href="shop.html">Shop</a>
+      <a href="shop.html?cat=denim-customize" style="color:var(--orange);">Denim Customize</a>
+      <a href="cart.html">Carrello</a>
+    </nav>
+  </div>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb">
+    <div class="breadcrumb__inner">
+      <a href="index.html">Home</a>
+      <i class="fa-solid fa-chevron-right"></i>
+      <a href="shop.html">Shop</a>
+      <i class="fa-solid fa-chevron-right"></i>
+      <a href="shop.html?cat=giacche-denim">Giacche Denim</a>
+      <i class="fa-solid fa-chevron-right"></i>
+      <span>Giacca Denim Customizzata #001</span>
+    </div>
+  </div>
+
+  <!-- PRODUCT DETAIL -->
+  <div style="background: var(--black);">
+    <div class="product-detail">
+
+      <!-- Gallery -->
+      <div class="product-gallery">
+        <div class="product-gallery__main">
+          <i class="fa-regular fa-image"></i>
+          <span style="font-size:13px;letter-spacing:1px;text-transform:uppercase;">Foto Principale</span>
+        </div>
+        <div class="product-gallery__thumbs">
+          <div class="product-gallery__thumb active"><i class="fa-regular fa-image"></i></div>
+          <div class="product-gallery__thumb"><i class="fa-regular fa-image"></i></div>
+          <div class="product-gallery__thumb"><i class="fa-regular fa-image"></i></div>
+          <div class="product-gallery__thumb"><i class="fa-regular fa-image"></i></div>
+          <div class="product-gallery__thumb"><i class="fa-regular fa-image"></i></div>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="product-info">
+        <p class="product-info__category">Giacche Denim</p>
+        <h1 class="product-info__name">Giacca Denim<br>Customizzata #001</h1>
+
+        <div class="product-info__price">
+          €149,00
+          <span class="product-info__price--old">€189,00</span>
+        </div>
+
+        <!-- Stars -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+          <div style="color:var(--red);letter-spacing:2px;font-size:14px;">★★★★★</div>
+          <span style="font-size:12px;color:var(--gray);">(24 recensioni)</span>
+        </div>
+
+        <p class="product-info__desc">
+          Giacca in denim di alta qualità, lavorata e customizzata interamente a mano nel mio laboratorio. Ogni pezzo è unico e irripetibile. Il processo artigianale include lavorazione manuale del tessuto, decorazioni cucite a mano e finiture personalizzate. <strong>Placeholder testo descrizione prodotto.</strong>
+        </p>
+
+        <!-- Taglia -->
+        <div class="size-selector">
+          <label>Taglia — <a href="#" style="color:var(--red);font-size:11px;">Guida alle taglie</a></label>
+          <div class="size-options">
+            <button class="size-btn" disabled>XS</button>
+            <button class="size-btn">S</button>
+            <button class="size-btn">M</button>
+            <button class="size-btn">L</button>
+            <button class="size-btn">XL</button>
+            <button class="size-btn" disabled>XXL</button>
+          </div>
+        </div>
+
+        <!-- Quantità -->
+        <div>
+          <label style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:12px;">Quantità</label>
+          <div class="quantity-selector">
+            <button class="qty-btn" data-action="minus">−</button>
+            <input class="qty-input" type="number" value="1" min="1" max="10">
+            <button class="qty-btn" data-action="plus">+</button>
+          </div>
+        </div>
+
+        <!-- Azioni -->
+        <div class="product-actions">
+          <button class="btn btn-primary"
+            id="btn-add-to-cart"
+            data-product-id="p001"
+            data-product-name="Giacca Denim Customizzata #001"
+            data-product-price="149.00"
+            style="flex:1;">
+            <i class="fa-solid fa-bag-shopping"></i> Aggiungi al carrello
+          </button>
+          <button class="btn btn-secondary" style="padding:14px 16px;" aria-label="Preferiti">
+            <i class="fa-regular fa-heart"></i>
+          </button>
+        </div>
+
+        <!-- WhatsApp CTA -->
+        <a href="https://wa.me/39XXXXXXXXXX?text=Ciao, vorrei informazioni sulla Giacca Denim #001"
+          class="btn btn-secondary btn-full"
+          style="border-color:var(--green,#25d366);color:#25d366;margin-bottom:24px;background:rgba(37,211,102,0.05);">
+          <i class="fa-brands fa-whatsapp"></i> Richiedi info su WhatsApp
+        </a>
+
+        <!-- Meta -->
+        <div class="product-meta">
+          <span><i class="fa-solid fa-truck"></i> Spedizione gratuita sopra €100</span>
+          <span><i class="fa-solid fa-rotate-left"></i> Reso entro 14 giorni</span>
+          <span><i class="fa-solid fa-lock"></i> Pagamento sicuro</span>
+          <span><i class="fa-solid fa-hand-sparkles"></i> Fatto a mano in Italia</span>
+        </div>
+
+        <!-- Accordion descrizione -->
+        <div style="margin-top:32px;border-top:1px solid var(--border);">
+          <details style="padding:16px 0;border-bottom:1px solid var(--border);">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+              Dettagli del prodotto <i class="fa-solid fa-plus" style="font-size:11px;color:var(--gray);"></i>
+            </summary>
+            <div style="margin-top:14px;font-size:13px;color:var(--gray);line-height:1.8;">
+              <p>• Materiale: Denim 100% cotone — <em>placeholder</em></p>
+              <p>• Composizione: placeholder</p>
+              <p>• Colore: placeholder</p>
+              <p>• Lavaggio: placeholder</p>
+              <p>• Prodotto in: Italia</p>
+            </div>
+          </details>
+          <details style="padding:16px 0;border-bottom:1px solid var(--border);">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+              Spedizioni e resi <i class="fa-solid fa-plus" style="font-size:11px;color:var(--gray);"></i>
+            </summary>
+            <div style="margin-top:14px;font-size:13px;color:var(--gray);line-height:1.8;">
+              <p>• Spedizione standard: 3-5 giorni lavorativi</p>
+              <p>• Spedizione express: 1-2 giorni lavorativi</p>
+              <p>• Gratuita sopra €100</p>
+              <p>• Reso gratuito entro 14 giorni dall'acquisto</p>
+            </div>
+          </details>
+        </div>
+
+      </div>
+    </div><!-- /product-detail -->
+  </div>
+
+  <!-- PRODOTTI CORRELATI -->
+  <section class="products-section" style="padding-top:0;">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow">Potrebbe interessarti</p>
+        <h2 class="section-title">Prodotti Correlati</h2>
+        <div class="section-divider"></div>
+      </div>
+      <div class="products-grid">
+        <div class="product-card" data-product data-product-id="r001" data-product-name="Camicia Denim Custom" data-product-price="95.00">
+          <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Correlato 1</span>
+            <div class="product-card__img-overlay"><a href="product.html" class="product-card__quick-view">Vista rapida</a></div>
+          </div>
+          <div class="product-card__body">
+            <p class="product-card__category">Camicie Denim</p>
+            <h3 class="product-card__name">Camicia Denim Custom</h3>
+            <div class="product-card__footer">
+              <span class="product-card__price">€95,00</span>
+              <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="product-card" data-product data-product-id="r002" data-product-name="Jeans Slim Handcrafted" data-product-price="119.00">
+          <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Correlato 2</span>
+            <div class="product-card__img-overlay"><a href="product.html" class="product-card__quick-view">Vista rapida</a></div>
+          </div>
+          <div class="product-card__body">
+            <p class="product-card__category">Jeans</p>
+            <h3 class="product-card__name">Jeans Slim Handcrafted</h3>
+            <div class="product-card__footer">
+              <span class="product-card__price">€119,00</span>
+              <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="product-card" data-product data-product-id="r003" data-product-name="Giacca Cargo Denim" data-product-price="165.00">
+          <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Correlato 3</span>
+            <div class="product-card__img-overlay"><a href="product.html" class="product-card__quick-view">Vista rapida</a></div>
+          </div>
+          <div class="product-card__body">
+            <p class="product-card__category">Giacche</p>
+            <h3 class="product-card__name">Giacca Cargo Denim</h3>
+            <div class="product-card__footer">
+              <span class="product-card__price">€165,00</span>
+              <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="product-card" data-product data-product-id="r004" data-product-name="Felpa Oversize Logo" data-product-price="79.00">
+          <div class="product-card__img"><i class="fa-regular fa-image"></i><span>Correlato 4</span>
+            <div class="product-card__img-overlay"><a href="product.html" class="product-card__quick-view">Vista rapida</a></div>
+          </div>
+          <div class="product-card__body">
+            <p class="product-card__category">Felpe</p>
+            <h3 class="product-card__name">Felpa Oversize Logo</h3>
+            <div class="product-card__footer">
+              <span class="product-card__price">€79,00</span>
+              <button class="product-card__add" data-add-cart><i class="fa-solid fa-plus"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="index.html" class="nav__logo">Jacopo<span>Peca</span></a>
+        <p>Abbigliamento streetwear handcrafted in denim. Fatto a mano a Montesilvano, Italia.</p>
+        <div class="footer__socials">
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-tiktok"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-whatsapp"></i></a>
+        </div>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Shop</h4>
+        <ul class="footer__links">
+          <li><a href="shop.html">Tutti i prodotti</a></li>
+          <li><a href="shop.html?cat=giacche-denim">Giacche Denim</a></li>
+          <li><a href="shop.html?cat=denim-customize">Denim Customize</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Info</h4>
+        <ul class="footer__links">
+          <li><a href="#">Spedizioni</a></li>
+          <li><a href="#">Resi e cambi</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Contatti</h4>
+        <div class="footer__contact-item"><i class="fa-solid fa-location-dot"></i><span>Montesilvano (PE), Italia</span></div>
+        <div class="footer__contact-item"><i class="fa-solid fa-envelope"></i><span>info@jacopopeca.com</span></div>
+        <div class="footer__contact-item"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp disponibile</span></div>
+      </div>
+    </div>
+    <div class="footer__bottom">&copy; 2024 Jacopo Peca. Tutti i diritti riservati.</div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

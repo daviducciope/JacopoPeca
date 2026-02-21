@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrello — Jacopo Peca</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__socials">
+        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="#"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#"><i class="fa-brands fa-tiktok"></i></a>
+      </div>
+      <span class="topbar__text">Spedizione gratuita sopra €100 &mdash; Fatto a mano in Italia</span>
+      <a href="https://wa.me/39XXXXXXXXXX" class="topbar__whatsapp">
+        <i class="fa-brands fa-whatsapp"></i> WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <nav class="nav">
+      <a href="index.html" class="nav__logo">Jacopo<span>Peca</span></a>
+      <ul class="nav__menu">
+        <li class="nav__item"><a href="index.html" class="nav__link">Home</a></li>
+        <li class="nav__item">
+          <a href="shop.html" class="nav__link">Shop</a>
+        </li>
+        <li class="nav__item"><a href="shop.html?cat=denim-customize" class="nav__link nav__link--highlight">Denim Customize</a></li>
+      </ul>
+      <div class="nav__actions">
+        <button class="nav__icon-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <a href="cart.html" class="nav__icon-btn" style="color:var(--red);">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="cart-count" style="display:none;">0</span>
+        </a>
+        <button class="nav__hamburger"><span></span><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu">
+    <button class="mobile-menu__close">&times;</button>
+    <nav class="mobile-menu__nav">
+      <a href="index.html">Home</a>
+      <a href="shop.html">Shop</a>
+      <a href="shop.html?cat=denim-customize" style="color:var(--orange);">Denim Customize</a>
+    </nav>
+  </div>
+
+  <!-- BREADCRUMB -->
+  <div class="breadcrumb">
+    <div class="breadcrumb__inner">
+      <a href="index.html">Home</a>
+      <i class="fa-solid fa-chevron-right"></i>
+      <span>Carrello</span>
+    </div>
+  </div>
+
+  <!-- PAGE TITLE -->
+  <div style="background:var(--dark);padding:48px 0;text-align:center;border-bottom:1px solid var(--border);">
+    <div class="container">
+      <h1 class="section-title">Il tuo Carrello</h1>
+    </div>
+  </div>
+
+  <!-- CART CONTENT -->
+  <div style="background:var(--black);">
+    <div class="cart-layout">
+
+      <!-- EMPTY STATE -->
+      <div id="cart-empty" style="display:none;text-align:center;padding:80px 20px;grid-column:1/-1;">
+        <i class="fa-solid fa-bag-shopping" style="font-size:64px;color:var(--border);margin-bottom:24px;display:block;"></i>
+        <h2 style="font-family:var(--font-display);font-size:32px;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Carrello vuoto</h2>
+        <p style="color:var(--gray);font-size:14px;margin-bottom:32px;">Non hai ancora aggiunto nessun prodotto al carrello.</p>
+        <a href="shop.html" class="btn btn-primary"><i class="fa-solid fa-bag-shopping"></i> Vai allo shop</a>
+      </div>
+
+      <!-- TABLE + SUMMARY -->
+      <div id="cart-content">
+        <!-- Cart Table -->
+        <div style="overflow-x:auto;">
+          <table class="cart-table">
+            <thead>
+              <tr>
+                <th style="text-align:left;">Prodotto</th>
+                <th>Prezzo</th>
+                <th>Quantità</th>
+                <th>Totale</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="cart-items">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Cart actions -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;flex-wrap:wrap;gap:12px;">
+          <a href="shop.html" class="btn btn-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> Continua gli acquisti
+          </a>
+        </div>
+      </div>
+
+      <!-- Order Summary -->
+      <div class="order-summary" id="cart-content">
+        <h2 class="order-summary__title">Riepilogo</h2>
+
+        <div class="summary-row">
+          <span>Subtotale</span>
+          <span id="summary-subtotal">€0,00</span>
+        </div>
+        <div class="summary-row">
+          <span>Spedizione</span>
+          <span id="summary-shipping">—</span>
+        </div>
+        <div class="summary-row">
+          <span>Tasse</span>
+          <span>Incluse</span>
+        </div>
+        <div class="summary-row summary-row--total">
+          <span>Totale</span>
+          <span id="summary-total">€0,00</span>
+        </div>
+
+        <!-- Promo code -->
+        <div class="promo-input">
+          <input type="text" placeholder="Codice sconto">
+          <button type="button">Applica</button>
+        </div>
+
+        <a href="#" class="btn btn-primary btn-full" style="margin-bottom:10px;">
+          <i class="fa-solid fa-lock"></i> Procedi al checkout
+        </a>
+
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+          <img src="https://img.shields.io/badge/Visa-1A1F71?style=flat&logo=visa&logoColor=white" alt="Visa" style="height:24px;border-radius:3px;">
+          <img src="https://img.shields.io/badge/Mastercard-EB001B?style=flat&logo=mastercard&logoColor=white" alt="Mastercard" style="height:24px;border-radius:3px;">
+          <img src="https://img.shields.io/badge/PayPal-003087?style=flat&logo=paypal&logoColor=white" alt="PayPal" style="height:24px;border-radius:3px;">
+        </div>
+
+        <p style="font-size:11px;color:var(--gray);text-align:center;margin-top:14px;letter-spacing:0.5px;">
+          <i class="fa-solid fa-lock" style="color:var(--red);margin-right:4px;"></i>
+          Pagamento sicuro e crittografato
+        </p>
+      </div>
+
+    </div><!-- /cart-layout -->
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="index.html" class="nav__logo">Jacopo<span>Peca</span></a>
+        <p>Abbigliamento streetwear handcrafted in denim. Fatto a mano a Montesilvano, Italia.</p>
+        <div class="footer__socials">
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-tiktok"></i></a>
+          <a href="#" class="footer__social-link"><i class="fa-brands fa-whatsapp"></i></a>
+        </div>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Shop</h4>
+        <ul class="footer__links">
+          <li><a href="shop.html">Tutti i prodotti</a></li>
+          <li><a href="shop.html?cat=denim-customize">Denim Customize</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Info</h4>
+        <ul class="footer__links">
+          <li><a href="#">Spedizioni</a></li>
+          <li><a href="#">Resi e cambi</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer__col-title">Contatti</h4>
+        <div class="footer__contact-item"><i class="fa-solid fa-envelope"></i><span>info@jacopopeca.com</span></div>
+        <div class="footer__contact-item"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp disponibile</span></div>
+      </div>
+    </div>
+    <div class="footer__bottom">&copy; 2024 Jacopo Peca. Tutti i diritti riservati.</div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    // Show empty or filled cart on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const cart = JSON.parse(localStorage.getItem('jp_cart') || '[]');
+      const emptyEl = document.getElementById('cart-empty');
+      const contentEls = document.querySelectorAll('#cart-content');
+      if (cart.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        contentEls.forEach(el => el.style.display = 'none');
+      }
+    });
+  </script>
+</body>
+</html>
