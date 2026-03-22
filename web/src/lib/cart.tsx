@@ -4,7 +4,7 @@ import { createContext, useContext, useCallback, useSyncExternalStore } from "re
 
 /* ── Types ── */
 export interface CartItem {
-  productId: number;
+  productId: string;
   slug: string;
   name: string;
   priceCents: number;
@@ -64,7 +64,7 @@ function persist(state: CartState) {
   emitChange();
 }
 
-function itemKey(productId: number, size: string | null) {
+function itemKey(productId: string, size: string | null) {
   return `${productId}::${size ?? ""}`;
 }
 
@@ -81,7 +81,7 @@ function addItem(item: Omit<CartItem, "qty">, qty = 1) {
   persist(state);
 }
 
-function removeItem(productId: number, size: string | null) {
+function removeItem(productId: string, size: string | null) {
   const state = readCart();
   state.items = state.items.filter(
     (i) => itemKey(i.productId, i.size) !== itemKey(productId, size)
@@ -89,7 +89,7 @@ function removeItem(productId: number, size: string | null) {
   persist(state);
 }
 
-function updateQty(productId: number, size: string | null, qty: number) {
+function updateQty(productId: string, size: string | null, qty: number) {
   if (qty < 1) return removeItem(productId, size);
   const state = readCart();
   const item = state.items.find(
@@ -109,8 +109,8 @@ interface CartContextValue {
   totalItems: number;
   totalCents: number;
   addItem: (item: Omit<CartItem, "qty">, qty?: number) => void;
-  removeItem: (productId: number, size: string | null) => void;
-  updateQty: (productId: number, size: string | null, qty: number) => void;
+  removeItem: (productId: string, size: string | null) => void;
+  updateQty: (productId: string, size: string | null, qty: number) => void;
   clearCart: () => void;
 }
 

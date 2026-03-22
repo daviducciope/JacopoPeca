@@ -3,12 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { loadStripe } from "@stripe/stripe-js";
 import { useCart } from "@/lib/cart";
-import { stripePrices } from "@/lib/stripe-prices";
-
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
-const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : Promise.resolve(null);
 
 function formatPrice(cents: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -25,31 +20,31 @@ export default function CartPage() {
     setError(null);
 
     try {
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error("Chiave pubblicabile Stripe non configurata");
-
-      const lineItems = items
-        .map((item) => {
-          const priceId = stripePrices[item.slug];
-          if (!priceId) return null;
-          return { price: priceId, quantity: item.qty };
-        })
-        .filter(Boolean) as { price: string; quantity: number }[];
-
-      if (lineItems.length === 0) {
-        setError("Nessun prodotto configurato per il checkout.");
-        setLoading(false);
-        return;
-      }
-
-      const { error: stripeError } = await stripe.redirectToCheckout({
-        lineItems,
-        mode: "payment",
-        successUrl: `${window.location.origin}/checkout/success`,
-        cancelUrl: `${window.location.origin}/cart`,
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            slug: item.slug,
+            qty: item.qty,
+            size: item.size,
+          })),
+        }),
       });
 
-      if (stripeError) setError(stripeError.message ?? "Errore checkout");
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Errore checkout");
+      }
+
+      if (!payload.url) {
+        throw new Error("Checkout non disponibile");
+      }
+
+      window.location.href = payload.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore imprevisto");
     } finally {

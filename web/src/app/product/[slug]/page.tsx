@@ -1,21 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import {
-  products,
-  getProductBySlug,
-  getProductsByCategory,
-  formatPrice,
-} from "@/lib/catalog";
+import { formatPrice } from "@/lib/catalog";
+import { getRelatedStorefrontProducts, getStorefrontProductBySlug } from "@/lib/product-data";
 import AddToCartButton from "@/components/AddToCartButton";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getStorefrontProductBySlug(slug);
   if (!product) return { title: "Prodotto non trovato" };
   return {
     title: `${product.name} — Jacopo Peca`,
@@ -25,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getStorefrontProductBySlug(slug);
 
   if (!product) {
     return (
@@ -38,9 +32,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  const related = getProductsByCategory(product.categorySlug)
-    .filter((p) => p.id !== product.id)
-    .slice(0, 4);
+  const related = await getRelatedStorefrontProducts(product.categorySlug, product.id, 4);
 
   const thumbnail = product.images.find((i) => i.isThumbnail) || product.images[0];
   const gallery = product.images.filter((i) => !i.isThumbnail).slice(0, 5);

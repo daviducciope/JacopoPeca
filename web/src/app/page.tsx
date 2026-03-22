@@ -1,10 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import { categories, getFeaturedProducts, formatPrice } from "@/lib/catalog";
+import { formatPrice } from "@/lib/catalog";
+import { getFeaturedStorefrontProducts, getStorefrontCategories } from "@/lib/product-data";
 
-export default function HomePage() {
-  const featured = getFeaturedProducts(8);
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [categories, featured] = await Promise.all([
+    getStorefrontCategories(),
+    getFeaturedStorefrontProducts(8),
+  ]);
 
   return (
     <main className="flex flex-1 flex-col">

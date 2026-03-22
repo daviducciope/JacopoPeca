@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useCart } from "@/lib/cart";
 
 interface Props {
-  productId: number;
+  productId: string;
   slug: string;
   name: string;
   priceCents: number;

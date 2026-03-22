@@ -1,27 +1,19 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { products, categories, formatPrice } from "@/lib/catalog";
 
-const inStock = products.filter((p) => p.inStock);
-const outOfStock = products.filter((p) => !p.inStock);
-const totalRevenuePotential = inStock.reduce((sum, p) => sum + p.priceCents, 0);
+import { formatPrice } from "@/lib/catalog";
+import { getAdminDashboardData, getAdminProductsPageData } from "@/lib/product-data";
 
-const adminOverview = {
-  revenue: formatPrice(totalRevenuePotential),
-  products: products.length,
-  inStock: inStock.length,
-  categories: categories.length,
-  topProducts: inStock.slice(0, 3).map((p) => p.name),
-  lowStock: outOfStock.slice(0, 3).map((p) => ({
-    name: p.name,
-    category: p.categoryName,
-  })),
-  byCat: categories.map((c) => ({
-    name: c.name,
-    count: c.count,
-  })),
-};
+export const dynamic = "force-dynamic";
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const [adminOverview, productsPageData] = await Promise.all([
+    getAdminDashboardData(),
+    getAdminProductsPageData(),
+  ]);
+
+  const maxCategoryCount = Math.max(...adminOverview.byCat.map((item) => item.count), 1);
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-10 lg:px-10">
       <section className="border border-white/10 bg-[#111] p-8 text-white">
@@ -32,7 +24,7 @@ export default function AdminPage() {
               Controllo completo su catalogo, ordini e performance.
             </h1>
             <p className="mt-4 text-base leading-7 text-white/50">
-              Dashboard collegata al catalogo reale WooCommerce con checkout Stripe attivo.
+              Dashboard collegata al catalogo persistente con checkout Stripe server-side.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/admin/products" className="border-2 border-white bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:bg-transparent hover:text-white">
@@ -52,15 +44,23 @@ export default function AdminPage() {
         </div>
       </section>
 
+      {(adminOverview.usingFallbackData || !adminOverview.databaseEnabled) && (
+        <section className="border border-amber-400/20 bg-amber-400/10 px-5 py-4 text-sm text-amber-100">
+          {!adminOverview.databaseEnabled
+            ? "DATABASE_URL non configurato: la dashboard sta leggendo il catalogo statico in fallback."
+            : "Il database non e raggiungibile al momento: la dashboard sta mostrando il catalogo statico di fallback."}
+        </section>
+      )}
+
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="border border-white/8 bg-[#111] p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-white/30">Prodotti per categoria</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Distribuzione catalogo reale</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Distribuzione catalogo</h2>
             </div>
             <span className="border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
-              {products.length} prodotti
+              {adminOverview.products} prodotti
             </span>
           </div>
           <div className="mt-8 flex h-72 items-end gap-4 border border-dashed border-white/10 bg-white/3 p-6">
@@ -69,7 +69,7 @@ export default function AdminPage() {
                 <div className="flex h-full w-full items-end">
                   <div
                     className="w-full bg-white"
-                    style={{ height: `${Math.max((entry.count / Math.max(...adminOverview.byCat.map(e => e.count))) * 100, 14)}%` }}
+                    style={{ height: `${Math.max((entry.count / maxCategoryCount) * 100, 14)}%` }}
                   />
                 </div>
                 <div className="text-center">
@@ -110,14 +110,14 @@ export default function AdminPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-white/30">Catalogo</p>
-            <h2 className="mt-2 text-3xl font-semibold text-white">Catalogo prodotti reali — {products.length} pezzi</h2>
+            <h2 className="mt-2 text-3xl font-semibold text-white">Catalogo prodotti - {productsPageData.products.length} pezzi</h2>
           </div>
           <div className="border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/50">
-            Dati importati da WooCommerce
+            {productsPageData.usingFallbackData ? "Fallback statico" : "Database prodotti"}
           </div>
         </div>
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          {products.slice(0, 9).map((product) => (
+          {productsPageData.products.slice(0, 9).map((product) => (
             <Link key={product.id} href={`/product/${product.slug}`} className="border border-white/8 bg-white/3 p-5 transition hover:bg-white/6">
               <p className="text-xs uppercase tracking-[0.2em] text-white/30">{product.categoryName}</p>
               <h3 className="mt-2 text-xl font-semibold text-white">{product.name}</h3>
@@ -128,7 +128,7 @@ export default function AdminPage() {
               <div className="mt-4 flex items-center justify-between text-sm">
                 <span className="font-semibold text-white">{formatPrice(product.priceCents)}</span>
                 <span className="border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
-                  {product.inStock ? "attivo" : "esaurito"}
+                  {product.status.toLowerCase()}
                 </span>
               </div>
             </Link>
@@ -155,7 +155,7 @@ function Panel({
 }: {
   title: string;
   badge: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="border border-white/8 bg-[#111] p-6">

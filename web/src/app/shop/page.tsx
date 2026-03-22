@@ -1,9 +1,22 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import { categories, products, formatPrice } from "@/lib/catalog";
+import { formatPrice } from "@/lib/catalog";
+import { getStorefrontCategories, getStorefrontProducts } from "@/lib/product-data";
 
-export default function ShopPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ShopPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cat?: string }>;
+}) {
+  const { cat } = await searchParams;
+  const [categories, products] = await Promise.all([
+    getStorefrontCategories(),
+    getStorefrontProducts(cat),
+  ]);
+
   return (
     <main className="flex flex-1 flex-col">
       {/* Hero */}
@@ -25,17 +38,25 @@ export default function ShopPage() {
         <div className="flex flex-wrap gap-2 border-b border-white/8 pb-6">
           <Link
             href="/shop"
-            className="border border-white/20 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-black"
+            className={`border px-4 py-2 text-xs font-bold uppercase tracking-widest transition ${
+              !cat
+                ? "border-white/20 bg-white text-black"
+                : "border-white/10 text-white/50 hover:border-white/30 hover:text-white"
+            }`}
           >
             Tutti ({products.length})
           </Link>
-          {categories.map((cat) => (
+          {categories.map((category) => (
             <Link
-              key={cat.slug}
-              href={`/shop?cat=${cat.slug}`}
-              className="border border-white/10 px-4 py-2 text-xs uppercase tracking-widest text-white/50 transition hover:border-white/30 hover:text-white"
+              key={category.slug}
+              href={`/shop?cat=${category.slug}`}
+              className={`border px-4 py-2 text-xs uppercase tracking-widest transition ${
+                category.slug === cat
+                  ? "border-white/20 bg-white text-black"
+                  : "border-white/10 text-white/50 hover:border-white/30 hover:text-white"
+              }`}
             >
-              {cat.name} ({cat.count})
+              {category.name} ({category.count})
             </Link>
           ))}
         </div>
