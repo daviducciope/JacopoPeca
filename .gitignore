@@ -1,0 +1,24 @@
+# Local dependencies and build output
+**/node_modules/
+**/.next/
+**/out/
+**/*.tsbuildinfo
+
+# Sensitive local files
+aws_credential.md
+.env
+.env.*
+!.env.example
+
+# Recovery and local ops artifacts
+recovered-wordpress/
+.claude/
+
+# Accidental command output files created in the repo root
+/lightsail*
+/:\ \$\?\"
+web/lightsail*
+
+# OS / misc
+.DS_Store
+*.log
