@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
 import Link from "next/link";
 import Image from "next/image";
+
 import { useCart } from "@/lib/cart";
+import { stripePrices } from "@/lib/stripe-prices";
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : Promise.resolve(null);
 
 function formatPrice(cents: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -14,37 +21,98 @@ export default function CartPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function redirectWithStaticCheckout() {
+    const stripe = await stripePromise;
+    if (!stripe) {
+      throw new Error("Chiave pubblicabile Stripe non configurata");
+    }
+
+    const lineItems = items
+      .map((item) => {
+        const priceId = stripePrices[item.slug];
+        return priceId
+          ? {
+              price: priceId,
+              quantity: item.qty,
+            }
+          : null;
+      })
+      .filter((item): item is { price: string; quantity: number } => item !== null);
+
+    if (lineItems.length === 0) {
+      throw new Error("Nessun prodotto configurato per il checkout.");
+    }
+
+    const { error: stripeError } = await stripe.redirectToCheckout({
+      lineItems,
+      mode: "payment",
+      successUrl: `${window.location.origin}/checkout/success`,
+      cancelUrl: `${window.location.origin}/cart`,
+    });
+
+    if (stripeError) {
+      throw new Error(stripeError.message ?? "Errore checkout");
+    }
+  }
+
+  async function tryServerCheckout() {
+    const response = await fetch("/api/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: items.map((item) => ({
+          slug: item.slug,
+          qty: item.qty,
+          size: item.size,
+        })),
+      }),
+    });
+
+    let payload: { error?: string; url?: string } | null = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      if ([404, 405, 503].includes(response.status)) {
+        return false;
+      }
+
+      throw new Error(payload?.error ?? "Errore checkout");
+    }
+
+    if (!payload?.url) {
+      return false;
+    }
+
+    window.location.href = payload.url;
+    return true;
+  }
+
   async function handleCheckout() {
     if (items.length === 0) return;
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: items.map((item) => ({
-            slug: item.slug,
-            qty: item.qty,
-            size: item.size,
-          })),
-        }),
-      });
+      let redirected = false;
 
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Errore checkout");
+      try {
+        redirected = await tryServerCheckout();
+      } catch (serverError) {
+        if (!(serverError instanceof TypeError)) {
+          throw serverError;
+        }
       }
 
-      if (!payload.url) {
-        throw new Error("Checkout non disponibile");
+      if (!redirected) {
+        await redirectWithStaticCheckout();
       }
-
-      window.location.href = payload.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore imprevisto");
     } finally {

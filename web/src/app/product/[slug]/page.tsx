@@ -2,10 +2,17 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { formatPrice } from "@/lib/catalog";
-import { getRelatedStorefrontProducts, getStorefrontProductBySlug } from "@/lib/product-data";
+import { getRelatedStorefrontProducts, getStorefrontProductBySlug, getStorefrontProducts } from "@/lib/product-data";
+import { ensureDynamicRendering } from "@/lib/render-mode";
 import AddToCartButton from "@/components/AddToCartButton";
 
-export const dynamic = "force-dynamic";
+export async function generateStaticParams() {
+  const products = await getStorefrontProducts();
+
+  return products.map((product) => ({
+    slug: product.slug,
+  }));
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -18,6 +25,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  await ensureDynamicRendering();
+
   const { slug } = await params;
   const product = await getStorefrontProductBySlug(slug);
 
@@ -58,7 +67,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {/* Gallery */}
           <div className="space-y-3">
             {thumbnail && (
-              <div className="relative aspect-[4/5] overflow-hidden border border-white/8 bg-[#111]">
+              <div className="relative aspect-4/5 overflow-hidden border border-white/8 bg-[#111]">
                 <Image
                   src={thumbnail.url}
                   alt={thumbnail.alt}
@@ -180,7 +189,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     href={`/product/${p.slug}`}
                     className="group overflow-hidden border border-white/8 bg-[#111] transition hover:border-white/20"
                   >
-                    <div className="relative aspect-[3/4] bg-[#1a1a1a]">
+                    <div className="relative aspect-3/4 bg-[#1a1a1a]">
                       {thumb && (
                         <Image
                           src={thumb.url}

@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
+const deployTarget = process.env.JP_DEPLOY_TARGET === "static" ? "static" : "runtime";
+
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: deployTarget === "static" ? "export" : "standalone",
   trailingSlash: true,
   reactCompiler: true,
   images: {

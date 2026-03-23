@@ -1,20 +1,25 @@
-@import url("https://fonts.googleapis.com/css2?family=Road+Rage&family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Road+Rage&family=Poppins:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
   --background: #0a0a0a;
-  --foreground: #ffffff;
+  --foreground: #f8f8f8;
   --accent: #ffffff;
   --muted: #888888;
   --surface: #161616;
   --surface-2: #1e1e1e;
-  --border: rgba(255, 255, 255, 0.08);
+  --border: #2a2a2a;
+  --red: #e01010;
+  --red-hover: #b80d0d;
+  --orange: #d95f00;
+  --gray: #888888;
+  --light-gray: #cccccc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Inter", sans-serif;
+  --font-sans: "Poppins", sans-serif;
   --font-display: "Road Rage", cursive;
 }
 
@@ -25,8 +30,15 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Inter", sans-serif;
+  font-family: "Poppins", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
 }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--red); border-radius: 3px; }
 
 a {
   color: inherit;

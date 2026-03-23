@@ -1,54 +1,79 @@
 # Jacopo Peca Migration Plan
 
 ## Current verified state
-- DNS apex points to a running Lightsail WordPress instance in eu-central-1.
-- Daily auto-snapshots exist for the last 7 days.
-- No S3 bucket, CloudFront distribution, or ACM certificate currently exists for jacopopeca.com.
-- WordPress data is likely stored on the Lightsail instance disk.
+
+Stato verificato via AWS CLI il 2026-03-23:
+
+- account AWS: `089081311517`
+- IAM user operativo: `github-deployer`
+- hosted zone Route53 attiva per `jacopopeca.com`
+- apex `jacopopeca.com` e `www.jacopopeca.com` puntano alla distribuzione CloudFront `E1WY7YHVG6PVEF`
+- alias CloudFront configurati:
+   - `jacopopeca.com`
+   - `www.jacopopeca.com`
+   - `staging.jacopopeca.com`
+- origin CloudFront attuale:
+   - `staging.jacopopeca.com.s3-website.eu-central-1.amazonaws.com`
+- non risultano cache behavior separati per `/api/*`
+- conseguenza: la produzione attuale continua a funzionare come sito statico distribuito da S3 + CloudFront
+
+## What is already migrated
+
+- il frontend principale e stato ricostruito in Next.js sotto `web/`
+- esistono admin pages e API routes per una futura modalita server-capable
+- Prisma schema, client generation e seed script sono presenti
+- il deploy live corrente usa una static export del frontend pubblico
+- il checkout live resta compatibile grazie a un fallback client-side Stripe quando `/api/checkout` non e disponibile
+
+## Active live deploy path
+
+Percorso live oggi:
+
+1. build statica con `npm run build:static`
+2. sync di `web/out/` sul bucket `staging.jacopopeca.com`
+3. invalidation della distribuzione CloudFront `E1WY7YHVG6PVEF`
+
+Script operativo:
+
+```bash
+./ops/deploy-live-static.sh
+```
+
+Nota importante:
+
+- la stessa distribuzione CloudFront serve staging, apex e www
+- ogni invalidation fatta da questo script impatta tutti e tre gli hostname
 
 ## Target architecture
-- Next.js storefront hosted behind CloudFront.
-- Postgres for products, variants, orders, and admin users.
-- S3 for product images and imported WordPress media.
-- Stripe Checkout + webhook processing.
-- Private admin area for product uploads and sales stats.
 
-## Immediate migration sequence
-1. Create a manual pre-migration snapshot of the Lightsail instance.
-2. Clone or restore the instance from snapshot to extract:
-   - wp-content/uploads
-   - wp-config.php
-   - WordPress database dump
-3. Normalize images and map recovered products into the new Prisma schema.
-4. Configure staging bucket, CloudFront distribution, and ACM certificate.
-5. Deploy the new Next.js app to staging.
-6. Validate catalog, checkout, admin, and asset loading.
-7. Switch Route 53 to CloudFront.
-8. Keep Lightsail read-only during burn-in, then stop and remove it.
+Target desiderato a regime:
 
-## Missing AWS permissions to complete end-to-end automation
-- lightsail:CreateInstanceSnapshot
-- lightsail:CreateInstancesFromSnapshot
-- lightsail:DeleteInstanceSnapshot
-- lightsail:StopInstance
-- lightsail:DeleteInstance
-- lightsail:OpenInstancePublicPorts
-- lightsail:CloseInstancePublicPorts
-- lightsail:RebootInstance
-- lightsail:GetInstanceScreenshot
-- route53:ChangeResourceRecordSets
-- acm:RequestCertificate
-- acm:AddTagsToCertificate
-- s3:CreateBucket
-- s3:PutBucketPolicy
-- s3:PutBucketWebsite
-- s3:PutBucketPublicAccessBlock
-- s3:PutBucketCors
-- s3:PutEncryptionConfiguration
-- s3:PutObject
-- s3:DeleteObject
-- cloudfront:CreateDistribution
-- cloudfront:UpdateDistribution
-- cloudfront:CreateInvalidation
-- cloudfront:TagResource
-- iam:PassRole (only if deployment roles are used)
+- Next.js runtime dietro origin applicativo dedicato
+- Postgres per products, variants, orders, customers e admin users
+- admin CRUD pienamente operativo via Prisma
+- Stripe Checkout server-side + webhook handling
+- CloudFront con origin e behavior coerenti per pagine statiche e API/runtime
+
+## Remaining migration work
+
+1. scegliere il target runtime definitivo
+    - container su VM/Lightsail/EC2 oppure altra piattaforma Node
+2. pubblicare il runtime standalone come origin applicativo reale
+3. aggiungere behavior CloudFront separati almeno per `/api/*` e per le route dinamiche necessarie
+4. impostare env complete di produzione
+    - `DATABASE_URL`
+    - `STRIPE_SECRET_KEY`
+    - `STRIPE_WEBHOOK_SECRET`
+    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+    - `ADMIN_EMAIL`
+    - `ADMIN_PASSWORD`
+5. validare admin CRUD e checkout server-side sulla nuova origin runtime
+6. rimuovere il fallback static-only quando la produzione non dipendera piu da S3 website hosting
+
+## Operational notes
+
+- il repo ora supporta due modalita build:
+   - `standalone` per runtime Node
+   - `export` per static deploy compatibile con il live attuale
+- `web/scripts/build-static.mjs` esclude temporaneamente admin, API e middleware per produrre l'export statico senza toccare il codice runtime del repo
+- quando si fanno modifiche solo grafiche o editoriali, il deploy richiesto per il sito live resta quello statico finche l'infrastruttura non cambia

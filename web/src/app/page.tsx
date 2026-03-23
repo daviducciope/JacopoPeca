@@ -3,10 +3,11 @@ import Image from "next/image";
 
 import { formatPrice } from "@/lib/catalog";
 import { getFeaturedStorefrontProducts, getStorefrontCategories } from "@/lib/product-data";
-
-export const dynamic = "force-dynamic";
+import { ensureDynamicRendering } from "@/lib/render-mode";
 
 export default async function HomePage() {
+  await ensureDynamicRendering();
+
   const [categories, featured] = await Promise.all([
     getStorefrontCategories(),
     getFeaturedStorefrontProducts(8),
@@ -70,7 +71,7 @@ export default async function HomePage() {
               <Link
                 key={cat.slug}
                 href={`/shop?cat=${cat.slug}`}
-                className="group border border-white/8 bg-white/[0.02] p-5 transition hover:bg-white/5"
+                className="group border border-white/8 bg-white/2 p-5 transition hover:bg-white/5"
               >
                 <p className="font-display text-2xl text-white group-hover:text-white md:text-3xl">
                   {cat.name}
@@ -114,7 +115,7 @@ export default async function HomePage() {
                   href={`/product/${product.slug}`}
                   className="group overflow-hidden border border-white/8 bg-[#111] transition hover:border-white/20"
                 >
-                  <div className="relative aspect-[3/4] bg-[#1a1a1a]">
+                  <div className="relative aspect-3/4 bg-[#1a1a1a]">
                     {thumb && (
                       <Image
                         src={thumb.url}

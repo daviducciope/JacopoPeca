@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import CartIcon from "./CartIcon";
 import { contactInfo, socials, storeCategories } from "@/lib/editorial-data";
 
@@ -12,125 +11,199 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Top bar */}
-      <div className="bg-black border-b border-white/5">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
-          <div className="flex items-center gap-4">
+      {/* ── Topbar ── */}
+      <div className="bg-[#e01010] py-1.5 text-[12px] tracking-[1.5px] uppercase font-medium text-center">
+        <div className="mx-auto max-w-[1280px] px-5 flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
             {socials.map((s) => (
               <a
                 key={s.name}
                 href={s.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-white/50 transition hover:text-white"
+                className="text-sm opacity-90 hover:opacity-100 transition-opacity"
               >
                 {s.name}
               </a>
             ))}
           </div>
+          <span className="tracking-[2px] hidden sm:block">✦ CONSEGNA GRATUITA SOPRA €100 ✦</span>
           <a
             href={contactInfo.whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-white/50 transition hover:text-white"
+            className="hidden sm:flex items-center gap-1.5 text-[12px]"
           >
             WhatsApp
           </a>
         </div>
       </div>
 
-      {/* Main nav */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-black/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/wp-content/uploads/2023/09/logo-jp.png"
-              alt="Jacopo Peca"
-              width={48}
-              height={48}
-              className="h-12 w-auto"
-            />
-          </Link>
+      {/* ── Full-screen mobile menu ── */}
+      {mobileOpen && (
+        <div className="fixed inset-0 bg-[#0a0a0a] z-[999] pt-[100px] px-[30px] pb-10 flex flex-col overflow-y-auto">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="absolute top-6 right-6 bg-transparent text-[#f8f8f8] text-[28px] leading-none cursor-pointer border-none"
+            aria-label="Chiudi menu"
+          >
+            ✕
+          </button>
 
-          {/* Desktop nav */}
-          <nav className="hidden items-center gap-8 text-sm uppercase tracking-widest text-white/70 lg:flex">
-            <Link href="/" className="transition hover:text-white">
+          <nav className="flex flex-col gap-1">
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
+            >
               Home
             </Link>
-            <div
-              className="relative"
-              onMouseEnter={() => setStoreOpen(true)}
-              onMouseLeave={() => setStoreOpen(false)}
+            <Link
+              href="/shop"
+              onClick={() => setMobileOpen(false)}
+              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
             >
-              <Link href="/shop" className="transition hover:text-white">
-                Store
-              </Link>
-              {storeOpen && (
-                <div className="absolute left-0 top-full pt-2">
-                  <div className="min-w-50 rounded-lg border border-white/10 bg-[#111] p-2 shadow-2xl">
-                    {storeCategories.map((cat) => (
-                      <Link
-                        key={cat.slug}
-                        href={`/shop?cat=${cat.slug}`}
-                        className="block rounded-md px-3 py-2 text-xs uppercase tracking-widest text-white/60 transition hover:bg-white/5 hover:text-white"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <Link href="/about" className="transition hover:text-white">
-              About
+              Store
             </Link>
-            <Link href="/denim-customize" className="transition hover:text-white">
-              Customize
-            </Link>
-            <Link href="/contatti" className="transition hover:text-white">
-              Contatti
-            </Link>
-          </nav>
-
-          {/* Right */}
-          <div className="flex items-center gap-3">
-            <CartIcon />
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="flex flex-col gap-1.5 lg:hidden"
-              aria-label="Menu"
-            >
-              <span className={`block h-0.5 w-6 bg-white transition-all ${mobileOpen ? "translate-y-2 rotate-45" : ""}`} />
-              <span className={`block h-0.5 w-6 bg-white transition-all ${mobileOpen ? "opacity-0" : ""}`} />
-              <span className={`block h-0.5 w-6 bg-white transition-all ${mobileOpen ? "-translate-y-2 -rotate-45" : ""}`} />
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="border-t border-white/5 bg-black px-4 py-6 lg:hidden">
-            <nav className="flex flex-col gap-4 text-sm uppercase tracking-widest">
-              <Link href="/" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">Home</Link>
-              <Link href="/shop" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">Store</Link>
+            <div className="flex flex-col pl-5">
               {storeCategories.map((cat) => (
                 <Link
                   key={cat.slug}
                   href={`/shop?cat=${cat.slug}`}
                   onClick={() => setMobileOpen(false)}
-                  className="pl-4 text-xs text-white/40 hover:text-white"
+                  className="block py-3.5 text-[14px] tracking-[1.2px] uppercase border-b border-white/5 text-[#888888] hover:text-[#f8f8f8] transition-colors"
                 >
                   {cat.name}
                 </Link>
               ))}
-              <Link href="/about" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">About</Link>
-              <Link href="/denim-customize" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">Customize</Link>
-              <Link href="/contatti" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">Contatti</Link>
-            </nav>
+            </div>
+            <Link
+              href="/about"
+              onClick={() => setMobileOpen(false)}
+              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
+            >
+              About
+            </Link>
+            <Link
+              href="/denim-customize"
+              onClick={() => setMobileOpen(false)}
+              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
+            >
+              Customize
+            </Link>
+            <Link
+              href="/contatti"
+              onClick={() => setMobileOpen(false)}
+              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
+            >
+              Contatti
+            </Link>
+          </nav>
+        </div>
+      )}
+
+      {/* ── Sticky header ── */}
+      <header className="sticky top-0 z-[1000] bg-[#0a0a0a] border-b border-[#2a2a2a]">
+        <div className="mx-auto max-w-[1280px] px-5 h-[72px] flex items-center justify-between gap-6">
+
+          {/* Logo */}
+          <Link
+            href="/"
+            className="font-display text-[32px] tracking-[4px] text-[#f8f8f8] uppercase flex-shrink-0 leading-none"
+          >
+            JACOPO <span className="text-[#e01010]">PECA</span>
+          </Link>
+
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center gap-1.5">
+            <Link
+              href="/"
+              className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
+            >
+              Home
+            </Link>
+
+            {/* Store + dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setStoreOpen(true)}
+              onMouseLeave={() => setStoreOpen(false)}
+            >
+              <Link
+                href="/shop"
+                className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
+              >
+                Store
+              </Link>
+              {storeOpen && (
+                <div
+                  className="absolute top-[calc(100%+12px)] left-0 min-w-[200px] bg-[#161616] border border-[#2a2a2a] py-2 z-[100]"
+                  style={{ borderTop: "2px solid #e01010" }}
+                >
+                  {storeCategories.map((cat) => (
+                    <Link
+                      key={cat.slug}
+                      href={`/shop?cat=${cat.slug}`}
+                      className="block px-5 py-2.5 text-[12px] tracking-[1.2px] uppercase text-[#888888] hover:text-[#f8f8f8] hover:bg-white/[0.04] hover:pl-[26px] transition-all"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Link
+              href="/about"
+              className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
+            >
+              About
+            </Link>
+
+            <Link
+              href="/denim-customize"
+              className="block px-3.5 py-[7px] text-[12px] font-semibold tracking-[1.8px] uppercase text-[#d95f00] border border-[#d95f00] rounded-sm hover:bg-[#d95f00] hover:text-white transition-all"
+            >
+              Customize
+            </Link>
+
+            <Link
+              href="/contatti"
+              className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
+            >
+              Contatti
+            </Link>
+          </nav>
+
+          {/* Actions: cart + hamburger */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            <CartIcon />
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="lg:hidden flex flex-col gap-[5px] p-1 bg-transparent border-none cursor-pointer"
+              aria-label="Menu"
+            >
+              <span
+                className={`block w-6 bg-[#f8f8f8] transition-all duration-300 ${
+                  mobileOpen ? "translate-y-[7px] rotate-45 h-px" : "h-px"
+                }`}
+                style={{ height: "2px" }}
+              />
+              <span
+                className={`block w-6 bg-[#f8f8f8] transition-all duration-300 ${
+                  mobileOpen ? "opacity-0" : ""
+                }`}
+                style={{ height: "2px" }}
+              />
+              <span
+                className={`block w-6 bg-[#f8f8f8] transition-all duration-300 ${
+                  mobileOpen ? "-translate-y-[7px] -rotate-45" : ""
+                }`}
+                style={{ height: "2px" }}
+              />
+            </button>
           </div>
-        )}
+        </div>
       </header>
     </>
   );
