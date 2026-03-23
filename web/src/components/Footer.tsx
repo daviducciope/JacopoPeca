@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-
-const socials = [
-  { name: "Facebook", href: "https://www.facebook.com/peca.jacopo" },
-  { name: "Instagram", href: "https://www.instagram.com/jpcustomclothing/" },
-  { name: "TikTok", href: "https://www.tiktok.com/@jpcustomclothing" },
-];
+import { contactInfo, socials } from "@/lib/editorial-data";
 
 const footerLinks = [
+  { label: "About", href: "/about" },
+  { label: "Denim Customize", href: "/denim-customize" },
   { label: "Contatti", href: "/contatti" },
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Termini e Condizioni", href: "/termini-e-condizioni" },
@@ -74,20 +71,20 @@ export default function Footer() {
         <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 md:grid-cols-3 lg:px-10">
           <div>
             <p className="text-xs uppercase tracking-widest text-white/30">Email</p>
-            <a href="mailto:jacopopecajp@gmail.com" className="mt-1 block text-sm text-white/70 hover:text-white">
-              jacopopecajp@gmail.com
+            <a href={`mailto:${contactInfo.email}`} className="mt-1 block text-sm text-white/70 hover:text-white">
+              {contactInfo.email}
             </a>
           </div>
           <div>
             <p className="text-xs uppercase tracking-widest text-white/30">Telefono</p>
-            <a href="tel:+39085-2934313" className="mt-1 block text-sm text-white/70 hover:text-white">
-              085-2934313
+            <a href={contactInfo.phoneHref} className="mt-1 block text-sm text-white/70 hover:text-white">
+              {contactInfo.phoneDisplay}
             </a>
           </div>
           <div>
             <p className="text-xs uppercase tracking-widest text-white/30">Indirizzo</p>
             <p className="mt-1 text-sm text-white/70">
-              Via B.Croce 18, Montesilvano (PE) 65016
+              {contactInfo.address}
             </p>
           </div>
         </div>

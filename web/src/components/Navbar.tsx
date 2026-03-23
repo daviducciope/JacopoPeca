@@ -4,24 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import CartIcon from "./CartIcon";
-
-const storeCategories = [
-  { name: "Felpa", slug: "sweatshirt" },
-  { name: "T-Shirt", slug: "t-shirt" },
-  { name: "Pantaloni", slug: "pantaloni" },
-  { name: "Jeans", slug: "jeans-2" },
-  { name: "Giacca", slug: "jackets" },
-  { name: "Giacca Denim", slug: "giacca-denim" },
-  { name: "Camicia Denim", slug: "camicia-jeans" },
-  { name: "Cappello", slug: "cap" },
-  { name: "Denim Customize", slug: "denim-shorts" },
-];
-
-const socials = [
-  { name: "Facebook", href: "https://www.facebook.com/peca.jacopo", icon: "fb" },
-  { name: "Instagram", href: "https://www.instagram.com/jpcustomclothing/", icon: "ig" },
-  { name: "TikTok", href: "https://www.tiktok.com/@jpcustomclothing", icon: "tt" },
-];
+import { contactInfo, socials, storeCategories } from "@/lib/editorial-data";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -46,7 +29,7 @@ export default function Navbar() {
             ))}
           </div>
           <a
-            href="https://wa.me/390852934313"
+            href={contactInfo.whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-white/50 transition hover:text-white"
@@ -85,7 +68,7 @@ export default function Navbar() {
               </Link>
               {storeOpen && (
                 <div className="absolute left-0 top-full pt-2">
-                  <div className="min-w-[200px] rounded-lg border border-white/10 bg-[#111] p-2 shadow-2xl">
+                  <div className="min-w-50 rounded-lg border border-white/10 bg-[#111] p-2 shadow-2xl">
                     {storeCategories.map((cat) => (
                       <Link
                         key={cat.slug}
@@ -101,6 +84,9 @@ export default function Navbar() {
             </div>
             <Link href="/about" className="transition hover:text-white">
               About
+            </Link>
+            <Link href="/denim-customize" className="transition hover:text-white">
+              Customize
             </Link>
             <Link href="/contatti" className="transition hover:text-white">
               Contatti
@@ -140,6 +126,7 @@ export default function Navbar() {
                 </Link>
               ))}
               <Link href="/about" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">About</Link>
+              <Link href="/denim-customize" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">Customize</Link>
               <Link href="/contatti" onClick={() => setMobileOpen(false)} className="text-white/70 hover:text-white">Contatti</Link>
             </nav>
           </div>

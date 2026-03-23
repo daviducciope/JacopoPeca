@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Jacopo Peca Web
 
-## Getting Started
+Next.js storefront e admin per jacopopeca.com con:
 
-First, run the development server:
+- catalogo storefront con fallback statico
+- checkout Stripe server-side
+- CRUD admin prodotti via Prisma
+- protezione Basic Auth su `/admin` e `/api/admin`
+- build server-capable in modalita `standalone`
+
+## Avvio locale
+
+Per sviluppo:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Per generare il client Prisma:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run db:generate
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Per importare il catalogo corrente nel database:
 
-## Learn More
+```bash
+npm run db:seed
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Variabili ambiente
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Vedi `.env.example`. Le piu importanti per il runtime server sono:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `DATABASE_URL`
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_SITE_URL`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
 
-## Deploy on Vercel
+## Admin auth
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Le route `/admin` e `/api/admin` sono protette con Basic Auth via middleware.
+Se `ADMIN_EMAIL` o `ADMIN_PASSWORD` non sono configurati, l'admin risponde con `503`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy server-capable
+
+Questa app non e piu pensata per deploy S3 static-only.
+
+Opzioni preparate nel repo:
+
+- `web/Dockerfile` per runtime containerizzato
+- `ops/build-runtime-bundle.sh` per produrre un bundle tar.gz deployabile su VM
+- `ops/run-runtime-locally.sh` per verificare il runtime standalone locale
+
+Esempio rapido con Docker:
+
+```bash
+docker build -t jacopopeca-web ./web
+docker run --env-file ./web/.env -p 3000:3000 jacopopeca-web
+```
+
+Per un deploy su VM o Lightsail, estrai il bundle prodotto da `ops/build-runtime-bundle.sh`, imposta le env e avvia `node server.js` dietro reverse proxy.
