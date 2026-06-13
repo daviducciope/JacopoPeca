@@ -7,13 +7,20 @@ import { categories as fallbackCategories, formatPrice, products as fallbackProd
 import { isDatabaseConfigured, prisma, requirePrisma } from "@/lib/prisma";
 
 export type AppProductImage = {
+  id: string;
   url: string;
   alt: string;
+  width: number | null;
+  height: number | null;
+  sortOrder: number;
   isThumbnail: boolean;
 };
 
 export type AppProductSize = {
+  id: string;
   label: string;
+  sku: string;
+  color: string | null;
   stock: number;
   price: number;
 };
@@ -35,6 +42,12 @@ export type AppProduct = {
   createdAt: string;
   status: ProductStatus | "ACTIVE";
   featured: boolean;
+  limitedEdition: boolean;
+  badge: string | null;
+  materialNotes: string | null;
+  careNotes: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
 };
 
 export type AppCategory = {
@@ -82,6 +95,21 @@ const productWithRelations = {
 
 type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations>;
 
+const adminImageSchema = z.object({
+  url: z.string().trim().min(1, "Inserisci l'URL immagine."),
+  alt: z.string().trim().max(200).optional().default(""),
+  width: z.number().int().positive().nullable().optional(),
+  height: z.number().int().positive().nullable().optional(),
+  sortOrder: z.number().int().min(0).optional().default(0),
+});
+
+const adminVariantSchema = z.object({
+  sku: z.string().trim().min(1, "Lo SKU variante e obbligatorio.").max(80),
+  size: z.string().trim().min(1, "La taglia e obbligatoria.").max(40),
+  color: z.string().trim().max(80).optional().default(""),
+  stock: z.number().int().min(0, "Lo stock non puo essere negativo."),
+});
+
 export const adminProductSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri."),
   slug: z
@@ -92,13 +120,17 @@ export const adminProductSchema = z.object({
   description: z.string().trim().min(10, "Aggiungi una descrizione piu completa."),
   categoryId: z.string().trim().min(1, "Seleziona una categoria."),
   priceCents: z.number().int().min(50, "Il prezzo minimo e 0,50 EUR."),
-  sku: z.string().trim().max(80).optional().default(""),
-  imageUrl: z.string().trim().min(1, "Inserisci almeno un'immagine."),
-  imageAlt: z.string().trim().max(200).optional().default(""),
-  stock: z.number().int().min(0, "Lo stock non puo essere negativo."),
-  sizesText: z.string().trim().optional().default(""),
+  compareAtCents: z.number().int().min(50).nullable().optional(),
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
   featured: z.boolean().default(false),
+  limitedEdition: z.boolean().default(false),
+  badge: z.string().trim().max(80).optional().default(""),
+  materialNotes: z.string().trim().max(1200).optional().default(""),
+  careNotes: z.string().trim().max(1200).optional().default(""),
+  seoTitle: z.string().trim().max(70).optional().default(""),
+  seoDescription: z.string().trim().max(170).optional().default(""),
+  images: z.array(adminImageSchema).min(1, "Inserisci almeno un'immagine."),
+  variants: z.array(adminVariantSchema).min(1, "Inserisci almeno una variante."),
 });
 
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
@@ -108,7 +140,7 @@ function toFallbackProduct(product: (typeof fallbackProducts)[number]): AppProdu
     id: String(product.id),
     slug: product.slug,
     name: product.name,
-    description: `${product.name} — ${product.categoryName} handmade Jacopo Peca.`,
+    description: `${product.name} - ${product.categoryName} handmade Jacopo Peca.`,
     priceCents: product.priceCents,
     salePrice: product.salePrice,
     sku: product.sku,
@@ -116,15 +148,32 @@ function toFallbackProduct(product: (typeof fallbackProducts)[number]): AppProdu
     categoryId: product.categorySlug,
     categorySlug: product.categorySlug,
     categoryName: product.categoryName,
-    images: product.images,
-    sizes: product.sizes.map((size) => ({
+    images: product.images.map((image, index) => ({
+      id: `${product.id}-image-${index}`,
+      url: image.url,
+      alt: image.alt,
+      width: null,
+      height: null,
+      sortOrder: index,
+      isThumbnail: image.isThumbnail,
+    })),
+    sizes: product.sizes.map((size, index) => ({
+      id: `${product.id}-size-${index}`,
       label: size.label,
+      sku: product.sku || `${product.slug}-${slugifyValue(size.label)}`,
+      color: null,
       stock: size.stock,
       price: size.price,
     })),
     createdAt: new Date(product.createdAt).toISOString(),
     status: "ACTIVE",
     featured: false,
+    limitedEdition: product.sizes.reduce((sum, size) => sum + size.stock, 0) <= 2,
+    badge: null,
+    materialNotes: null,
+    careNotes: null,
+    seoTitle: null,
+    seoDescription: null,
   };
 }
 
@@ -140,7 +189,10 @@ function toFallbackCategory(category: (typeof fallbackCategories)[number]): AppC
 
 function toAppProduct(product: ProductWithRelations): AppProduct {
   const sizes = product.variants.map((variant) => ({
+    id: variant.id,
     label: variant.size,
+    sku: variant.sku,
+    color: variant.color,
     stock: variant.stock,
     price: product.priceCents / 100,
   }));
@@ -159,14 +211,24 @@ function toAppProduct(product: ProductWithRelations): AppProduct {
     categorySlug: product.category.slug,
     categoryName: product.category.name,
     images: product.images.map((image, index) => ({
+      id: image.id,
       url: image.url,
       alt: image.alt,
+      width: image.width,
+      height: image.height,
+      sortOrder: image.sortOrder,
       isThumbnail: index === 0,
     })),
     sizes,
     createdAt: product.createdAt.toISOString(),
     status: product.status,
     featured: product.featured,
+    limitedEdition: product.limitedEdition,
+    badge: product.badge,
+    materialNotes: product.materialNotes,
+    careNotes: product.careNotes,
+    seoTitle: product.seoTitle,
+    seoDescription: product.seoDescription,
   };
 }
 
@@ -200,11 +262,7 @@ async function loadProductsFromDatabase(includeArchived = false) {
   try {
     const records = await prisma.product.findMany({
       ...productWithRelations,
-      where: includeArchived
-        ? undefined
-        : {
-            status: "ACTIVE",
-          },
+      where: includeArchived ? undefined : { status: "ACTIVE" },
       orderBy: [{ featured: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
     });
 
@@ -227,11 +285,7 @@ async function loadCategoriesFromDatabase(includeArchived = false) {
           select: {
             id: true,
           },
-          where: includeArchived
-            ? undefined
-            : {
-                status: "ACTIVE",
-              },
+          where: includeArchived ? undefined : { status: "ACTIVE" },
         },
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -349,8 +403,12 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 }
 
 export async function getCheckoutProductsBySlugs(slugs: string[]): Promise<Map<string, AppProduct>> {
-  const products = await getStorefrontProducts();
+  const products = await loadProductsFromDatabase(false);
   const lookup = new Map<string, AppProduct>();
+
+  if (!products) {
+    return lookup;
+  }
 
   for (const product of products) {
     if (slugs.includes(product.slug)) {
@@ -359,13 +417,6 @@ export async function getCheckoutProductsBySlugs(slugs: string[]): Promise<Map<s
   }
 
   return lookup;
-}
-
-function normalizeSizes(sizesText: string) {
-  return [...new Set(sizesText
-    .split(/[\n,]/)
-    .map((size) => size.trim())
-    .filter(Boolean))];
 }
 
 function slugifyValue(value: string) {
@@ -377,23 +428,9 @@ function slugifyValue(value: string) {
     .slice(0, 60);
 }
 
-function buildVariantInputs(input: AdminProductInput) {
-  const sizes = normalizeSizes(input.sizesText);
-  if (sizes.length === 0) {
-    return [
-      {
-        sku: input.sku || `${input.slug}-uni`,
-        size: "UNI",
-        stock: input.stock,
-      },
-    ];
-  }
-
-  return sizes.map((size) => ({
-    sku: `${input.sku || input.slug}-${slugifyValue(size)}`,
-    size,
-    stock: input.stock,
-  }));
+function normalizeOptionalText(value: string | undefined) {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
 }
 
 async function mapSavedProduct(productId: string) {
@@ -412,30 +449,55 @@ async function mapSavedProduct(productId: string) {
   return toAppProduct(record);
 }
 
+function buildImages(input: AdminProductInput) {
+  return input.images.map((image, index) => ({
+    url: image.url,
+    alt: image.alt || input.name,
+    width: image.width ?? null,
+    height: image.height ?? null,
+    sortOrder: image.sortOrder ?? index,
+  }));
+}
+
+function buildVariants(input: AdminProductInput) {
+  return input.variants.map((variant) => ({
+    sku: variant.sku || `${input.slug}-${slugifyValue(variant.size)}`,
+    size: variant.size,
+    color: normalizeOptionalText(variant.color),
+    stock: variant.stock,
+  }));
+}
+
+function buildProductData(input: AdminProductInput) {
+  return {
+    slug: input.slug,
+    name: input.name,
+    description: input.description,
+    priceCents: input.priceCents,
+    compareAtCents: input.compareAtCents ?? null,
+    status: input.status,
+    featured: input.featured,
+    limitedEdition: input.limitedEdition,
+    badge: normalizeOptionalText(input.badge),
+    materialNotes: normalizeOptionalText(input.materialNotes),
+    careNotes: normalizeOptionalText(input.careNotes),
+    seoTitle: normalizeOptionalText(input.seoTitle),
+    seoDescription: normalizeOptionalText(input.seoDescription),
+    categoryId: input.categoryId,
+  };
+}
+
 export async function createAdminProduct(input: AdminProductInput) {
   const db = requirePrisma();
-  const variants = buildVariantInputs(input);
 
   const product = await db.product.create({
     data: {
-      slug: input.slug,
-      name: input.name,
-      description: input.description,
-      priceCents: input.priceCents,
-      status: input.status,
-      featured: input.featured,
-      categoryId: input.categoryId,
+      ...buildProductData(input),
       images: {
-        create: [
-          {
-            url: input.imageUrl,
-            alt: input.imageAlt || input.name,
-            sortOrder: 0,
-          },
-        ],
+        create: buildImages(input),
       },
       variants: {
-        create: variants,
+        create: buildVariants(input),
       },
     },
   });
@@ -445,33 +507,20 @@ export async function createAdminProduct(input: AdminProductInput) {
 
 export async function updateAdminProduct(productId: string, input: AdminProductInput) {
   const db = requirePrisma();
-  const variants = buildVariantInputs(input);
 
   await db.product.update({
     where: {
       id: productId,
     },
     data: {
-      slug: input.slug,
-      name: input.name,
-      description: input.description,
-      priceCents: input.priceCents,
-      status: input.status,
-      featured: input.featured,
-      categoryId: input.categoryId,
+      ...buildProductData(input),
       images: {
         deleteMany: {},
-        create: [
-          {
-            url: input.imageUrl,
-            alt: input.imageAlt || input.name,
-            sortOrder: 0,
-          },
-        ],
+        create: buildImages(input),
       },
       variants: {
         deleteMany: {},
-        create: variants,
+        create: buildVariants(input),
       },
     },
   });

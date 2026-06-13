@@ -51,7 +51,7 @@ export default function AboutPage() {
           <p className="text-xs uppercase tracking-[0.35em] text-white/35">Studio</p>
           <h2 className="mt-3 font-display text-4xl md:text-5xl">Montesilvano, lavoro manuale, pezzi con carattere.</h2>
           <p className="mt-6 text-base leading-8 text-white/60">
-            Il progetto Jacopo Peca nasce dall'idea di trattare lo streetwear come una materia viva:
+            Il progetto Jacopo Peca nasce dall&apos;idea di trattare lo streetwear come una materia viva:
             non solo abiti, ma superfici da costruire, modificare, sporcare e rifinire con criterio.
             Il denim resta il punto centrale, ma il metodo si estende a felpe, camicie, upcycling e capsule personalizzate.
           </p>
@@ -85,7 +85,7 @@ export default function AboutPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-white/35">Laboratorio</p>
-            <h2 className="mt-3 font-display text-4xl md:text-5xl">Dietro al capo c'e sempre una lavorazione reale.</h2>
+            <h2 className="mt-3 font-display text-4xl md:text-5xl">Dietro al capo c&apos;e sempre una lavorazione reale.</h2>
           </div>
           <p className="max-w-xl text-sm leading-7 text-white/50">
             Alcune immagini recuperate dal sito originario mostrano il contesto corretto: mani, tavolo di lavoro, prove, materiali e interventi diretti sul capo.

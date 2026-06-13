@@ -61,7 +61,7 @@ export default function ContattiPage() {
           <h2 className="mt-3 text-3xl font-semibold text-white">Cosa scrivere nel primo messaggio</h2>
           <ul className="mt-6 space-y-4 text-sm leading-7 text-white/60">
             <li>Nome del prodotto o slug se stai chiedendo disponibilita su un capo esistente.</li>
-            <li>Taglia, misure o fit desiderato se vuoi assistenza prima dell'acquisto.</li>
+            <li>Taglia, misure o fit desiderato se vuoi assistenza prima dell&apos;acquisto.</li>
             <li>Idea, foto di riferimento e base del capo se la richiesta e per una customizzazione.</li>
             <li>Tempistiche richieste se il pezzo serve per shooting, evento o drop specifico.</li>
           </ul>

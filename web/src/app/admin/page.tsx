@@ -30,6 +30,9 @@ export default async function AdminPage() {
               <Link href="/admin/products" className="border-2 border-white bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:bg-transparent hover:text-white">
                 Gestione prodotti
               </Link>
+              <Link href="/admin/orders" className="border border-white/20 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-white/80 transition hover:bg-white/8">
+                Ordini
+              </Link>
               <Link href="/shop" className="border border-white/20 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-white/80 transition hover:bg-white/8">
                 Vai allo shop
               </Link>

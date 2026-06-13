@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 import { getCheckoutProductsBySlugs } from "@/lib/product-data";
+import { isDatabaseConfigured } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,13 @@ function toAbsoluteUrl(value: string, baseUrl: string) {
 }
 
 export async function POST(request: Request) {
+  if (!isDatabaseConfigured) {
+    return NextResponse.json(
+      { error: "DATABASE_URL non configurato. Il checkout runtime richiede il database." },
+      { status: 503 },
+    );
+  }
+
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "STRIPE_SECRET_KEY non configurata." },
@@ -36,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const items = payload.items ?? [];
-  if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
+  if (!Array.isArray(items) || items.length === 0 || items.length > 49) {
     return NextResponse.json({ error: "Carrello non valido." }, { status: 400 });
   }
 
@@ -46,6 +54,10 @@ export async function POST(request: Request) {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const sessionMetadata: Record<string, string> = {
+      items_count: String(items.length),
+    };
+
     const lineItems = items.map((item) => {
       const product = productLookup.get(item.slug);
       if (!product) {
@@ -60,6 +72,30 @@ export async function POST(request: Request) {
       if (!product.inStock) {
         throw new Error(`${product.name} non e disponibile`);
       }
+
+      const variant = item.size
+        ? product.sizes.find((size) => size.label === item.size)
+        : product.sizes.length === 1
+          ? product.sizes[0]
+          : null;
+
+      if (!variant) {
+        throw new Error(`Seleziona una taglia valida per ${product.name}`);
+      }
+
+      if (variant.stock < qty) {
+        throw new Error(`Stock insufficiente per ${product.name} taglia ${variant.label}`);
+      }
+
+      const metadataIndex = Object.keys(sessionMetadata).length - 1;
+      sessionMetadata[`item_${metadataIndex}`] = JSON.stringify({
+        p: product.id,
+        v: variant.id,
+        s: variant.label,
+        q: qty,
+        n: product.name,
+        u: product.priceCents,
+      });
 
       const thumbnail = product.images.find((image) => image.isThumbnail) || product.images[0];
 
@@ -84,6 +120,7 @@ export async function POST(request: Request) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
+      metadata: sessionMetadata,
       shipping_address_collection: {
         allowed_countries: ["IT", "DE", "FR", "ES", "AT", "NL", "BE"],
       },

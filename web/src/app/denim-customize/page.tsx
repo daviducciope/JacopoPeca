@@ -19,7 +19,7 @@ export default function DenimCustomizePage() {
             Customizzazione vera, non un configuratore finto.
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-white/65">
-            Se vuoi un intervento su denim, una trasformazione su un capo esistente o un pezzo costruito a partire da un'idea,
+            Se vuoi un intervento su denim, una trasformazione su un capo esistente o un pezzo costruito a partire da un&apos;idea,
             il processo parte da un confronto diretto. Ogni custom e definita sul singolo caso, senza automatismi e senza preset rigidi.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

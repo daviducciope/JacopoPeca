@@ -72,3 +72,13 @@ a {
   background: rgba(0, 0, 0, 0.65);
   z-index: 1;
 }
+
+@layer components {
+  .input-admin {
+    @apply w-full border border-white/10 bg-black/35 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-white/35 disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .admin-link {
+    @apply border border-white/12 px-4 py-2 text-sm font-semibold text-white/60 transition hover:bg-white/8 hover:text-white;
+  }
+}

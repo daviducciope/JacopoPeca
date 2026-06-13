@@ -7,7 +7,10 @@ Funzionalita principali:
 - storefront con fallback su catalogo statico
 - checkout Stripe server-side quando esiste un runtime Node
 - fallback checkout Stripe client-side per il deploy statico attualmente in produzione
-- CRUD admin prodotti via Prisma
+- CRUD admin prodotti via Prisma con gallery immagini, varianti/taglie, stock e SEO prodotto
+- upload immagini prodotto su S3 tramite presigned URL
+- webhook Stripe per registrare ordini, righe ordine e decremento stock
+- vista admin ordini in sola lettura
 - Basic Auth su `/admin` e `/api/admin`
 - doppia modalita build: `standalone` per runtime Node, `export` per deploy statico
 
@@ -77,11 +80,17 @@ Variabili principali per runtime Node:
 - `NEXT_PUBLIC_SITE_URL`
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
+- `AWS_REGION`
+- `AWS_S3_BUCKET`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `NEXT_PUBLIC_ASSET_BASE_URL` opzionale, utile se gli asset S3 passano da CloudFront o da un dominio dedicato
 
 Note:
 
 - se `DATABASE_URL` manca, lo storefront degrada al catalogo statico
 - se `ADMIN_EMAIL` o `ADMIN_PASSWORD` mancano, `/admin` e `/api/admin` rispondono con `503`
+- se le variabili AWS mancano, il pannello prodotti resta utilizzabile con URL immagine manuali ma non puo generare upload S3
 - per il deploy statico live e comunque necessario `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, perche il carrello usa il fallback client-side verso Stripe Checkout
 
 ## Modalita deploy
@@ -143,3 +152,16 @@ Il carrello adotta due strategie:
 - se il sito gira nel deploy statico live attuale e `/api/checkout` non esiste, usa il fallback client-side basato su `src/lib/stripe-prices.ts`
 
 Questo evita di rompere il checkout finche la produzione resta dietro S3 + CloudFront statici.
+
+Nel runtime Node completo:
+
+- `/api/checkout` valida prodotti, taglie e stock dal database
+- `/api/webhooks/stripe` ascolta `checkout.session.completed` e `checkout.session.async_payment_succeeded`
+- il webhook crea `Customer`, `Order`, `OrderItem` e decrementa lo stock della variante pagata
+- gli ordini sono consultabili in `/admin/orders`
+
+Endpoint webhook Stripe da configurare:
+
+```text
+https://jacopopeca.com/api/webhooks/stripe
+```

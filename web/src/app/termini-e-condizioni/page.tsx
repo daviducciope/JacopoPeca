@@ -32,7 +32,7 @@ export default function TermsPage() {
       </section>
       <section className="text-sm leading-8 text-white/65">
         <p>
-          L'acquisto di capi unici o personalizzati puo richiedere conferme specifiche su misure, tempi e modalita di consegna prima dell'avvio del lavoro.
+          L&apos;acquisto di capi unici o personalizzati puo richiedere conferme specifiche su misure, tempi e modalita di consegna prima dell&apos;avvio del lavoro.
         </p>
       </section>
     </main>

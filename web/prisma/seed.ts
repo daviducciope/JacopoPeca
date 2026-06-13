@@ -1,10 +1,26 @@
 import "dotenv/config";
 
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
 import { categories, products } from "../src/lib/catalog";
 
-const prisma = new PrismaClient();
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL non configurato.");
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+    ...(process.env.DATABASE_URL.includes("sslmode=require") || process.env.DATABASE_URL.includes("rds.amazonaws.com")
+      ? {
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        }
+      : {}),
+  }),
+});
 
 function slugifyPart(value: string) {
   return value
@@ -17,6 +33,11 @@ function slugifyPart(value: string) {
 
 function buildDescription(productName: string, categoryName: string, categoryDescription: string) {
   return `${productName} - ${categoryName}. ${categoryDescription} Capo Jacopo Peca lavorato a mano nel laboratorio di Montesilvano.`;
+}
+
+function buildVariantSku(productSlug: string, productSku: string | null, sizeLabel: string, sizeIndex: number) {
+  const base = productSku ? `${productSku}-${productSlug}` : productSlug;
+  return `${base}-${slugifyPart(sizeLabel || `size-${sizeIndex + 1}`)}-${sizeIndex + 1}`;
 }
 
 async function main() {
@@ -85,7 +106,7 @@ async function main() {
         variants: {
           deleteMany: {},
           create: sizes.map((size, sizeIndex) => ({
-            sku: product.sku || `${product.slug}-${slugifyPart(size.label || `size-${sizeIndex + 1}`)}`,
+            sku: buildVariantSku(product.slug, product.sku, size.label, sizeIndex),
             size: size.label || "UNI",
             stock: size.stock,
           })),
@@ -116,7 +137,7 @@ async function main() {
         },
         variants: {
           create: sizes.map((size, sizeIndex) => ({
-            sku: product.sku || `${product.slug}-${slugifyPart(size.label || `size-${sizeIndex + 1}`)}`,
+            sku: buildVariantSku(product.slug, product.sku, size.label, sizeIndex),
             size: size.label || "UNI",
             stock: size.stock,
           })),

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 
 import { formatPrice } from "@/lib/catalog";
 import { getRelatedStorefrontProducts, getStorefrontProductBySlug, getStorefrontProducts } from "@/lib/product-data";
 import { ensureDynamicRendering } from "@/lib/render-mode";
+import { absoluteUrl, productAvailability, productSeoDescription, productSeoTitle } from "@/lib/seo";
 import AddToCartButton from "@/components/AddToCartButton";
 
 export async function generateStaticParams() {
@@ -14,13 +16,33 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getStorefrontProductBySlug(slug);
   if (!product) return { title: "Prodotto non trovato" };
+  const image = product.images.find((item) => item.isThumbnail) || product.images[0];
+  const title = productSeoTitle(product);
+  const description = productSeoDescription(product);
+
   return {
-    title: `${product.name} — Jacopo Peca`,
-    description: `${product.categoryName} handmade — ${formatPrice(product.priceCents)}`,
+    title,
+    description,
+    alternates: {
+      canonical: `/product/${product.slug}`,
+    },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: `/product/${product.slug}`,
+      images: image ? [{ url: absoluteUrl(image.url), alt: image.alt || product.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: image ? [absoluteUrl(image.url)] : undefined,
+    },
   };
 }
 
@@ -45,9 +67,33 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const thumbnail = product.images.find((i) => i.isThumbnail) || product.images[0];
   const gallery = product.images.filter((i) => !i.isThumbnail).slice(0, 5);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: productSeoDescription(product),
+    sku: product.sku ?? product.slug,
+    brand: {
+      "@type": "Brand",
+      name: "Jacopo Peca",
+    },
+    category: product.categoryName,
+    image: product.images.map((image) => absoluteUrl(image.url)),
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "EUR",
+      price: (product.priceCents / 100).toFixed(2),
+      availability: productAvailability(product),
+      url: absoluteUrl(`/product/${product.slug}`),
+    },
+  };
 
   return (
     <main className="flex flex-1 flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-10">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-white/30">
@@ -104,9 +150,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <p className="text-xs uppercase tracking-[0.4em] text-white/30">
                 {product.categoryName}
               </p>
+              {product.badge && (
+                <p className="mt-3 inline-block border border-white/15 bg-white/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+                  {product.badge}
+                </p>
+              )}
               <h1 className="mt-2 font-display text-5xl text-white md:text-7xl">
                 {product.name}
               </h1>
+              <p className="mt-5 text-base leading-8 text-white/60">
+                {product.description}
+              </p>
             </div>
 
             <div className="flex items-end gap-4">
@@ -162,12 +216,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <ul className="mt-2 list-inside list-disc space-y-1">
                   <li>Realizzato a mano nel laboratorio Jacopo Peca</li>
                   <li>Made in Italy</li>
-                  <li>Materiali selezionati</li>
+                  <li>{product.materialNotes || "Materiali selezionati"}</li>
                   {product.sizes.length > 0 && (
                     <li>
                       Taglie: {product.sizes.map((s) => s.label).join(", ")}
                     </li>
                   )}
+                  {product.careNotes && <li>Cura: {product.careNotes}</li>}
                 </ul>
               </div>
             </div>
