@@ -136,19 +136,21 @@ export default function Navbar() {
                 Store
               </Link>
               {storeOpen && (
-                <div
-                  className="absolute top-[calc(100%+12px)] left-0 min-w-[200px] bg-[#161616] border border-[#2a2a2a] py-2 z-[100]"
-                  style={{ borderTop: "2px solid #e01010" }}
-                >
-                  {storeCategories.map((cat) => (
-                    <Link
-                      key={cat.slug}
-                      href={`/shop?cat=${cat.slug}`}
-                      className="block px-5 py-2.5 text-[12px] tracking-[1.2px] uppercase text-[#888888] hover:text-[#f8f8f8] hover:bg-white/[0.04] hover:pl-[26px] transition-all"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
+                <div className="absolute top-full left-0 z-100 pt-3">
+                  <div
+                    className="min-w-50 bg-[#161616] border border-[#2a2a2a] py-2"
+                    style={{ borderTop: "2px solid #e01010" }}
+                  >
+                    {storeCategories.map((cat) => (
+                      <Link
+                        key={cat.slug}
+                        href={`/shop?cat=${cat.slug}`}
+                        className="block px-5 py-2.5 text-[12px] tracking-[1.2px] uppercase text-[#888888] hover:text-[#f8f8f8] hover:bg-white/4 hover:pl-6.5 transition-all"
+                      >
+                        {cat.name}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
