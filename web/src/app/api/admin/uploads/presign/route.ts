@@ -56,7 +56,10 @@ export async function POST(request: Request) {
 
   const extension = sanitizeExtension(result.data.filename);
   const key = `products/${new Date().getUTCFullYear()}/${randomUUID()}${extension}`;
-  const client = new S3Client({ region });
+  // requestChecksumCalculation: WHEN_REQUIRED prevents the SDK from adding
+  // x-amz-checksum-crc32 to presigned URLs — that header makes browser PUTs
+  // fail because the browser can't compute or forward the checksum.
+  const client = new S3Client({ region, requestChecksumCalculation: "WHEN_REQUIRED" });
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,

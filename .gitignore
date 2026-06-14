@@ -10,7 +10,8 @@ aws_credential.md
 .env.*
 !.env.example
 
-# Recovery and local ops artifacts
+# Local asset dumps and recovery artifacts
+assets/
 recovered-wordpress/
 .claude/
 .artifacts/

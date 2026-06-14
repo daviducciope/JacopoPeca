@@ -40,13 +40,18 @@ body {
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--red); border-radius: 3px; }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+/* These rules must live inside @layer base so Tailwind utility classes
+   (text-black, text-white, etc.) can override them. Unlayered CSS has
+   higher cascade priority than layered utilities in CSS Cascade Level 4. */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-* {
-  box-sizing: border-box;
+  * {
+    box-sizing: border-box;
+  }
 }
 
 ::selection {

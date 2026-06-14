@@ -3,6 +3,15 @@ import { NextResponse } from "next/server";
 import { adminProductSchema, archiveAdminProduct, updateAdminProduct } from "@/lib/product-data";
 import { isDatabaseConfigured } from "@/lib/prisma";
 
+function isPrismaUniqueError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: unknown }).code === "P2002"
+  );
+}
+
 type RouteContext = {
   params: Promise<{
     id: string;
@@ -36,6 +45,12 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ product });
   } catch (error) {
     console.error("Unable to update admin product.", error);
+    if (isPrismaUniqueError(error)) {
+      return NextResponse.json(
+        { error: "SKU o slug già in uso. Modifica lo slug o lo SKU delle varianti." },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: "Impossibile aggiornare il prodotto. Controlla slug, categoria e database." },
       { status: 500 },

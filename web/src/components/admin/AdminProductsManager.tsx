@@ -1,12 +1,23 @@
 "use client";
 
 import type { ChangeEvent, Dispatch, ReactNode, SetStateAction } from "react";
-import { startTransition, useDeferredValue, useState } from "react";
+import { Fragment, startTransition, useDeferredValue, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { formatPrice } from "@/lib/catalog";
 import type { AdminProductsPageData, AppCategory, AppProduct } from "@/lib/product-data";
+
+// crypto.randomUUID requires a secure context (HTTPS); fall back to Math.random for HTTP staging
+function genId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
 
 type SortKey = "name" | "price" | "category" | "stock" | "status";
 type StockFilter = "all" | "in" | "out";
@@ -35,8 +46,8 @@ type ProductFormState = {
   slug: string;
   description: string;
   categoryId: string;
-  priceCents: string;
-  compareAtCents: string;
+  price: string;        // euros, e.g. "60.00"
+  compareAt: string;    // euros
   status: ProductStatus;
   featured: boolean;
   limitedEdition: boolean;
@@ -54,8 +65,8 @@ const EMPTY_FORM: ProductFormState = {
   slug: "",
   description: "",
   categoryId: "",
-  priceCents: "",
-  compareAtCents: "",
+  price: "",
+  compareAt: "",
   status: "DRAFT",
   featured: false,
   limitedEdition: false,
@@ -89,6 +100,11 @@ export function AdminProductsManager({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // quick stock edit
+  const [stockEditId, setStockEditId] = useState<string | null>(null);
+  const [stockValues, setStockValues] = useState<Record<string, string>>({});
+  // track if user manually typed the slug (prevents auto-overwrite)
+  const slugManualRef = useRef(false);
 
   const deferredSearch = useDeferredValue(search);
   const normalizedSearch = deferredSearch.trim().toLowerCase();
@@ -96,31 +112,40 @@ export function AdminProductsManager({
 
   const filteredProducts = [...products]
     .filter((product) => {
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      return [product.name, product.slug, product.sku ?? ""].some((value) =>
-        value.toLowerCase().includes(normalizedSearch),
+      if (!normalizedSearch) return true;
+      return [product.name, product.slug, product.sku ?? ""].some((v) =>
+        v.toLowerCase().includes(normalizedSearch),
       );
     })
     .filter((product) => catFilter === "all" || product.categoryId === catFilter)
     .filter((product) => {
-      if (stockFilter === "all") {
-        return true;
-      }
-
+      if (stockFilter === "all") return true;
       return stockFilter === "in" ? product.inStock : !product.inStock;
     })
-    .sort((left, right) => {
-      if (sortKey === "name") return left.name.localeCompare(right.name);
-      if (sortKey === "price") return right.priceCents - left.priceCents;
-      if (sortKey === "category") return left.categoryName.localeCompare(right.categoryName);
-      if (sortKey === "stock") return stockCount(right) - stockCount(left);
-      return left.status.localeCompare(right.status);
+    .sort((a, b) => {
+      if (sortKey === "name") return a.name.localeCompare(b.name);
+      if (sortKey === "price") return b.priceCents - a.priceCents;
+      if (sortKey === "category") return a.categoryName.localeCompare(b.categoryName);
+      if (sortKey === "stock") return stockCount(b) - stockCount(a);
+      return a.status.localeCompare(b.status);
     });
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleNameChange(value: string) {
+    setForm((current) => {
+      const next: ProductFormState = { ...current, name: value };
+      if (!slugManualRef.current) {
+        next.slug = slugifyValue(value);
+      }
+      return next;
+    });
+  }
+
+  function handleSlugChange(value: string) {
+    slugManualRef.current = true;
+    updateForm(setForm, "slug", value);
+  }
+
+  async function handleSubmit(event: { preventDefault(): void }) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
@@ -128,30 +153,34 @@ export function AdminProductsManager({
 
     try {
       const payload = buildPayload(form);
-      const response = await fetch(editingId ? `/api/admin/products/${editingId}` : "/api/admin/products", {
+      const url = editingId ? `/api/admin/products/${editingId}/` : "/api/admin/products/";
+      const response = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        redirect: "follow",
       });
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Operazione non riuscita.");
+        const fieldErrors = result.details?.fieldErrors
+          ? Object.entries(result.details.fieldErrors as Record<string, string[]>)
+              .map(([field, msgs]) => `${field}: ${msgs[0]}`)
+              .join(" · ")
+          : null;
+        throw new Error(fieldErrors || result.error || "Operazione non riuscita.");
       }
 
       const saved = result.product as AppProduct;
       startTransition(() => {
-        setProducts((current) => {
-          const next = current.filter((product) => product.id !== saved.id);
-          return [saved, ...next];
-        });
+        setProducts((current) => [saved, ...current.filter((p) => p.id !== saved.id)]);
       });
-
       setEditingId(null);
+      slugManualRef.current = false;
       setForm(buildEmptyForm(categories, databaseEnabled));
       setSuccess(editingId ? "Prodotto aggiornato." : "Prodotto creato.");
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Errore inatteso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore inatteso.");
     } finally {
       setIsSubmitting(false);
     }
@@ -163,20 +192,55 @@ export function AdminProductsManager({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/admin/products/${productId}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/products/${productId}/`, { method: "DELETE" });
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Archiviazione non riuscita.");
-      }
-
+      if (!response.ok) throw new Error(result.error || "Archiviazione non riuscita.");
       const archived = result.product as AppProduct;
       startTransition(() => {
-        setProducts((current) => current.map((product) => (product.id === archived.id ? archived : product)));
+        setProducts((current) => current.map((p) => (p.id === archived.id ? archived : p)));
       });
       setSuccess("Prodotto archiviato.");
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Errore inatteso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore inatteso.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function beginStockEdit(product: AppProduct) {
+    setStockEditId(product.id);
+    setStockValues(Object.fromEntries(product.sizes.map((v) => [v.id, String(v.stock)])));
+    setError(null);
+    setSuccess(null);
+  }
+
+  async function handleStockSave() {
+    const product = products.find((p) => p.id === stockEditId);
+    if (!product) return;
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}/stock/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variants: product.sizes.map((v) => ({
+            id: v.id,
+            stock: Math.max(0, parseInt(stockValues[v.id] ?? String(v.stock), 10) || 0),
+          })),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Errore aggiornamento stock");
+      const saved = result.product as AppProduct;
+      startTransition(() => {
+        setProducts((current) => current.map((p) => (p.id === saved.id ? saved : p)));
+      });
+      setSuccess("Stock aggiornato.");
+      setStockEditId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore inatteso.");
     } finally {
       setIsSubmitting(false);
     }
@@ -187,47 +251,41 @@ export function AdminProductsManager({
       setError("Configura database e runtime admin prima di caricare immagini.");
       return;
     }
-
     setError(null);
     setForm((current) => updateImageRow(current, localId, { uploading: true }));
 
     try {
-      const presignResponse = await fetch("/api/admin/uploads/presign", {
+      const presignResponse = await fetch("/api/admin/uploads/presign/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size }),
       });
       const presign = await presignResponse.json();
-
-      if (!presignResponse.ok) {
-        throw new Error(presign.error || "Upload non configurato.");
-      }
+      if (!presignResponse.ok) throw new Error(presign.error || "Upload non configurato.");
 
       const uploadResponse = await fetch(presign.uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file,
       });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Caricamento immagine non riuscito.");
-      }
+      if (!uploadResponse.ok) throw new Error("Caricamento immagine non riuscito.");
 
       setForm((current) =>
         updateImageRow(current, localId, {
           url: presign.publicUrl,
-          alt: current.images.find((image) => image.localId === localId)?.alt || form.name || file.name,
+          alt: current.images.find((img) => img.localId === localId)?.alt || form.name || file.name,
           uploading: false,
         }),
       );
-    } catch (caughtError) {
+    } catch (err) {
       setForm((current) => updateImageRow(current, localId, { uploading: false }));
-      setError(caughtError instanceof Error ? caughtError.message : "Errore upload immagine.");
+      setError(err instanceof Error ? err.message : "Errore upload immagine.");
     }
   }
 
   function beginEdit(product: AppProduct) {
     setEditingId(product.id);
+    slugManualRef.current = true; // slug esistente non va sovrascritto
     setError(null);
     setSuccess(null);
     setForm({
@@ -235,8 +293,8 @@ export function AdminProductsManager({
       slug: product.slug,
       description: product.description,
       categoryId: product.categoryId,
-      priceCents: String(product.priceCents),
-      compareAtCents: product.salePrice ? String(product.salePrice) : "",
+      price: (product.priceCents / 100).toFixed(2),
+      compareAt: product.salePrice ? (product.salePrice / 100).toFixed(2) : "",
       status: normalizeStatus(product.status),
       featured: product.featured,
       limitedEdition: product.limitedEdition,
@@ -247,23 +305,23 @@ export function AdminProductsManager({
       seoDescription: product.seoDescription ?? "",
       images:
         product.images.length > 0
-          ? product.images.map((image, index) => ({
-              localId: image.id || crypto.randomUUID(),
-              url: image.url,
-              alt: image.alt,
-              width: image.width,
-              height: image.height,
-              sortOrder: image.sortOrder ?? index,
+          ? product.images.map((img, i) => ({
+              localId: img.id || genId(),
+              url: img.url,
+              alt: img.alt,
+              width: img.width,
+              height: img.height,
+              sortOrder: img.sortOrder ?? i,
             }))
           : [emptyImageRow(0)],
       variants:
         product.sizes.length > 0
-          ? product.sizes.map((size) => ({
-              localId: size.id || crypto.randomUUID(),
-              sku: size.sku,
-              size: size.label,
-              color: size.color ?? "",
-              stock: String(size.stock),
+          ? product.sizes.map((s) => ({
+              localId: s.id || genId(),
+              sku: s.sku,
+              size: s.label,
+              color: s.color ?? "",
+              stock: String(s.stock),
             }))
           : [emptyVariantRow(product.slug)],
     });
@@ -271,6 +329,7 @@ export function AdminProductsManager({
 
   function cancelEdit() {
     setEditingId(null);
+    slugManualRef.current = false;
     setForm(buildEmptyForm(categories, databaseEnabled));
     setError(null);
     setSuccess(null);
@@ -280,11 +339,8 @@ export function AdminProductsManager({
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-10 lg:px-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.4em] text-white/30">Superadmin</p>
+          <p className="text-xs uppercase tracking-[0.4em] text-white/30">Admin</p>
           <h1 className="mt-1 font-display text-4xl text-white">Gestione prodotti</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/50">
-            Catalogo persistente con varianti, gallery, stock per taglia e campi SEO prodotto.
-          </p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/admin" className="admin-link">Dashboard</Link>
@@ -297,16 +353,19 @@ export function AdminProductsManager({
         <section className="border border-amber-400/20 bg-amber-400/10 px-5 py-4 text-sm text-amber-100">
           {!databaseEnabled
             ? "DATABASE_URL non configurato: puoi consultare il catalogo di fallback ma non creare o aggiornare prodotti."
-            : "Il database non e raggiungibile: vedi il catalogo statico di fallback, ma il CRUD e disabilitato finche la connessione non torna disponibile."}
+            : "Il database non è raggiungibile: il CRUD è disabilitato finché la connessione non torna disponibile."}
         </section>
       )}
 
       <section className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+        {/* ── FORM PRODOTTO ── */}
         <form onSubmit={handleSubmit} className="border border-white/8 bg-[#111] p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-white/30">Editor</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">{editingId ? "Modifica prodotto" : "Nuovo prodotto"}</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-white">
+                {editingId ? "Modifica prodotto" : "Nuovo prodotto"}
+              </h2>
             </div>
             {editingId && (
               <button type="button" onClick={cancelEdit} className="admin-link">
@@ -317,166 +376,390 @@ export function AdminProductsManager({
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <Field label="Nome">
-              <input value={form.name} onChange={(event) => updateForm(setForm, "name", event.target.value)} className="input-admin" />
+              <input
+                value={form.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                className="input-admin"
+                placeholder="es. GIACCA DENIM JP-01"
+              />
             </Field>
-            <Field label="Slug">
-              <input value={form.slug} onChange={(event) => updateForm(setForm, "slug", event.target.value)} className="input-admin" />
+            <Field label="Slug URL">
+              <input
+                value={form.slug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                onBlur={(e) => {
+                  const sanitized = slugifyValue(e.target.value);
+                  if (sanitized !== e.target.value) {
+                    updateForm(setForm, "slug", sanitized);
+                  }
+                }}
+                className="input-admin"
+                placeholder="generato automaticamente"
+              />
+              <p className="mt-1 text-xs text-white/30">Solo minuscole, numeri e trattini</p>
             </Field>
             <Field label="Categoria">
-              <select value={form.categoryId} onChange={(event) => updateForm(setForm, "categoryId", event.target.value)} className="input-admin">
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
+              <select
+                value={form.categoryId}
+                onChange={(e) => updateForm(setForm, "categoryId", e.target.value)}
+                className="input-admin"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Prezzo in centesimi">
-              <input type="number" min="50" value={form.priceCents} onChange={(event) => updateForm(setForm, "priceCents", event.target.value)} className="input-admin" />
+            <Field label="Prezzo (€) *">
+              <input
+                type="number"
+                min="0.50"
+                step="0.01"
+                value={form.price}
+                onChange={(e) => updateForm(setForm, "price", e.target.value)}
+                className="input-admin"
+                placeholder="es. 60.00"
+              />
             </Field>
-            <Field label="Prezzo confronto">
-              <input type="number" min="50" value={form.compareAtCents} onChange={(event) => updateForm(setForm, "compareAtCents", event.target.value)} className="input-admin" />
+            <Field label="Prezzo barrato (€)">
+              <input
+                type="number"
+                min="0.50"
+                step="0.01"
+                value={form.compareAt}
+                onChange={(e) => updateForm(setForm, "compareAt", e.target.value)}
+                className="input-admin"
+                placeholder="es. 80.00 (opzionale)"
+              />
             </Field>
             <Field label="Badge">
-              <input value={form.badge} onChange={(event) => updateForm(setForm, "badge", event.target.value)} className="input-admin" />
+              <input
+                value={form.badge}
+                onChange={(e) => updateForm(setForm, "badge", e.target.value)}
+                className="input-admin"
+                placeholder="es. NEW, LIMITED"
+              />
             </Field>
             <Field label="Stato">
-              <select value={form.status} onChange={(event) => updateForm(setForm, "status", event.target.value as ProductStatus)} className="input-admin">
+              <select
+                value={form.status}
+                onChange={(e) => updateForm(setForm, "status", e.target.value as ProductStatus)}
+                className="input-admin"
+              >
                 <option value="DRAFT">Bozza</option>
                 <option value="ACTIVE">Attivo</option>
                 <option value="ARCHIVED">Archiviato</option>
               </select>
             </Field>
             <div className="flex flex-wrap items-end gap-5">
-              <Toggle label="In evidenza" checked={form.featured} onChange={(checked) => updateForm(setForm, "featured", checked)} />
-              <Toggle label="Limited edition" checked={form.limitedEdition} onChange={(checked) => updateForm(setForm, "limitedEdition", checked)} />
+              <Toggle
+                label="In evidenza"
+                checked={form.featured}
+                onChange={(v) => updateForm(setForm, "featured", v)}
+              />
+              <Toggle
+                label="Limited edition"
+                checked={form.limitedEdition}
+                onChange={(v) => updateForm(setForm, "limitedEdition", v)}
+              />
             </div>
-            <Field label="Descrizione" className="md:col-span-2">
-              <textarea value={form.description} onChange={(event) => updateForm(setForm, "description", event.target.value)} className="input-admin min-h-32" />
+            <Field label="Descrizione *" className="md:col-span-2">
+              <textarea
+                value={form.description}
+                onChange={(e) => updateForm(setForm, "description", e.target.value)}
+                className="input-admin min-h-32"
+                placeholder="Descrivi il prodotto (min. 10 caratteri)"
+              />
             </Field>
             <Field label="Note materiali" className="md:col-span-2">
-              <textarea value={form.materialNotes} onChange={(event) => updateForm(setForm, "materialNotes", event.target.value)} className="input-admin min-h-24" />
+              <textarea
+                value={form.materialNotes}
+                onChange={(e) => updateForm(setForm, "materialNotes", e.target.value)}
+                className="input-admin min-h-24"
+              />
             </Field>
             <Field label="Cura capo" className="md:col-span-2">
-              <textarea value={form.careNotes} onChange={(event) => updateForm(setForm, "careNotes", event.target.value)} className="input-admin min-h-24" />
+              <textarea
+                value={form.careNotes}
+                onChange={(e) => updateForm(setForm, "careNotes", e.target.value)}
+                className="input-admin min-h-24"
+              />
             </Field>
           </div>
 
           <EditorPanel title="Immagini">
             <div className="space-y-4">
-              {form.images.map((image, index) => (
-                <div key={image.localId} className="grid gap-3 border border-white/8 bg-black/25 p-4 md:grid-cols-[96px_1fr]">
+              {form.images.map((img, index) => (
+                <div
+                  key={img.localId}
+                  className="grid gap-3 border border-white/8 bg-black/25 p-4 md:grid-cols-[96px_1fr]"
+                >
                   <div className="relative h-28 w-24 overflow-hidden border border-white/8 bg-[#1a1a1a]">
-                    {image.url ? (
-                      <Image src={image.url} alt={image.alt || form.name || "Prodotto"} fill className="object-cover" sizes="96px" />
+                    {img.url ? (
+                      <Image
+                        src={img.url}
+                        alt={img.alt || form.name || "Prodotto"}
+                        fill
+                        className="object-cover"
+                        sizes="96px"
+                      />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-white/25">Foto</div>
+                      <div className="flex h-full items-center justify-center text-xs text-white/25">
+                        {img.uploading ? "Upload…" : "Foto"}
+                      </div>
                     )}
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <Field label={index === 0 ? "URL immagine thumbnail" : "URL immagine"}>
-                      <input value={image.url} onChange={(event) => setForm((current) => updateImageRow(current, image.localId, { url: event.target.value }))} className="input-admin" />
+                    <Field label={index === 0 ? "URL thumbnail" : "URL immagine"}>
+                      <input
+                        value={img.url}
+                        onChange={(e) =>
+                          setForm((cur) => updateImageRow(cur, img.localId, { url: e.target.value }))
+                        }
+                        className="input-admin"
+                      />
                     </Field>
                     <Field label="Alt text">
-                      <input value={image.alt} onChange={(event) => setForm((current) => updateImageRow(current, image.localId, { alt: event.target.value }))} className="input-admin" />
+                      <input
+                        value={img.alt}
+                        onChange={(e) =>
+                          setForm((cur) => updateImageRow(cur, img.localId, { alt: e.target.value }))
+                        }
+                        className="input-admin"
+                      />
                     </Field>
-                    <Field label="Upload S3">
-                      <input type="file" accept="image/*" disabled={!canWrite || image.uploading} onChange={(event) => handleFileChange(event, image.localId, uploadImage)} className="input-admin file:mr-3 file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-black" />
+                    <Field label="Carica da file (S3)">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={!canWrite || img.uploading}
+                        onChange={(e) => handleFileChange(e, img.localId, uploadImage)}
+                        className="input-admin file:mr-3 file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-black"
+                      />
                     </Field>
                     <div className="flex items-end gap-3">
-                      <button type="button" onClick={() => setForm((current) => moveImage(current, image.localId, -1))} className="admin-link">Su</button>
-                      <button type="button" onClick={() => setForm((current) => moveImage(current, image.localId, 1))} className="admin-link">Giu</button>
-                      <button type="button" onClick={() => setForm((current) => removeImage(current, image.localId))} className="text-xs font-semibold uppercase tracking-[0.16em] text-red-300 transition hover:text-red-200">Rimuovi</button>
+                      <button
+                        type="button"
+                        onClick={() => setForm((cur) => moveImage(cur, img.localId, -1))}
+                        className="admin-link"
+                      >
+                        Su
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm((cur) => moveImage(cur, img.localId, 1))}
+                        className="admin-link"
+                      >
+                        Giù
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm((cur) => removeImage(cur, img.localId))}
+                        className="text-xs font-semibold uppercase tracking-[0.16em] text-red-300 transition hover:text-red-200"
+                      >
+                        Rimuovi
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
-              <button type="button" onClick={() => setForm((current) => ({ ...current, images: [...current.images, emptyImageRow(current.images.length)] }))} className="admin-link">
-                Aggiungi immagine
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((cur) => ({
+                    ...cur,
+                    images: [...cur.images, emptyImageRow(cur.images.length)],
+                  }))
+                }
+                className="admin-link"
+              >
+                + Aggiungi immagine
               </button>
             </div>
           </EditorPanel>
 
-          <EditorPanel title="Varianti e stock">
+          <EditorPanel title="Taglie e stock">
             <div className="space-y-3">
               {form.variants.map((variant) => (
-                <div key={variant.localId} className="grid gap-3 border border-white/8 bg-black/25 p-4 md:grid-cols-[1fr_0.8fr_0.8fr_0.5fr_auto]">
+                <div
+                  key={variant.localId}
+                  className="grid gap-3 border border-white/8 bg-black/25 p-4 md:grid-cols-[1fr_0.8fr_0.8fr_0.5fr_auto]"
+                >
                   <Field label="SKU">
-                    <input value={variant.sku} onChange={(event) => setForm((current) => updateVariantRow(current, variant.localId, { sku: event.target.value }))} className="input-admin" />
+                    <input
+                      value={variant.sku}
+                      onChange={(e) =>
+                        setForm((cur) =>
+                          updateVariantRow(cur, variant.localId, { sku: e.target.value }),
+                        )
+                      }
+                      className="input-admin"
+                    />
                   </Field>
                   <Field label="Taglia">
-                    <input value={variant.size} onChange={(event) => setForm((current) => updateVariantRow(current, variant.localId, { size: event.target.value }))} className="input-admin" />
+                    <input
+                      value={variant.size}
+                      onChange={(e) =>
+                        setForm((cur) =>
+                          updateVariantRow(cur, variant.localId, { size: e.target.value }),
+                        )
+                      }
+                      className="input-admin"
+                      placeholder="es. S, M, L, UNI"
+                    />
                   </Field>
                   <Field label="Colore">
-                    <input value={variant.color} onChange={(event) => setForm((current) => updateVariantRow(current, variant.localId, { color: event.target.value }))} className="input-admin" />
+                    <input
+                      value={variant.color}
+                      onChange={(e) =>
+                        setForm((cur) =>
+                          updateVariantRow(cur, variant.localId, { color: e.target.value }),
+                        )
+                      }
+                      className="input-admin"
+                    />
                   </Field>
                   <Field label="Stock">
-                    <input type="number" min="0" value={variant.stock} onChange={(event) => setForm((current) => updateVariantRow(current, variant.localId, { stock: event.target.value }))} className="input-admin" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={variant.stock}
+                      onChange={(e) =>
+                        setForm((cur) =>
+                          updateVariantRow(cur, variant.localId, { stock: e.target.value }),
+                        )
+                      }
+                      className="input-admin"
+                    />
                   </Field>
-                  <button type="button" onClick={() => setForm((current) => removeVariant(current, variant.localId))} className="self-end text-xs font-semibold uppercase tracking-[0.16em] text-red-300 transition hover:text-red-200">
-                    Rimuovi
+                  <button
+                    type="button"
+                    onClick={() => setForm((cur) => removeVariant(cur, variant.localId))}
+                    className="self-end text-xs font-semibold uppercase tracking-[0.16em] text-red-300 transition hover:text-red-200"
+                  >
+                    ×
                   </button>
                 </div>
               ))}
-              <button type="button" onClick={() => setForm((current) => ({ ...current, variants: [...current.variants, emptyVariantRow(current.slug)] }))} className="admin-link">
-                Aggiungi variante
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((cur) => ({
+                    ...cur,
+                    variants: [...cur.variants, emptyVariantRow(cur.slug)],
+                  }))
+                }
+                className="admin-link"
+              >
+                + Aggiungi taglia
               </button>
             </div>
           </EditorPanel>
 
-          <EditorPanel title="SEO prodotto">
+          <EditorPanel title="SEO">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="SEO title">
-                <input value={form.seoTitle} placeholder={seoTitleFallback(form)} onChange={(event) => updateForm(setForm, "seoTitle", event.target.value)} className="input-admin" />
+                <input
+                  value={form.seoTitle}
+                  placeholder={form.name ? `${form.name} - Jacopo Peca` : "Nome prodotto - Jacopo Peca"}
+                  onChange={(e) => updateForm(setForm, "seoTitle", e.target.value)}
+                  className="input-admin"
+                />
               </Field>
               <Field label="SEO description">
-                <input value={form.seoDescription} placeholder={seoDescriptionFallback(form, categories)} onChange={(event) => updateForm(setForm, "seoDescription", event.target.value)} className="input-admin" />
+                <input
+                  value={form.seoDescription}
+                  placeholder={seoDescriptionFallback(form, categories)}
+                  onChange={(e) => updateForm(setForm, "seoDescription", e.target.value)}
+                  className="input-admin"
+                />
               </Field>
             </div>
           </EditorPanel>
 
           {(error || success) && (
-            <div className={`mt-5 border px-4 py-3 text-sm ${error ? "border-red-400/20 bg-red-400/10 text-red-100" : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"}`}>
+            <div
+              className={`mt-5 border px-4 py-3 text-sm ${
+                error
+                  ? "border-red-400/20 bg-red-400/10 text-red-100"
+                  : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+              }`}
+            >
               {error || success}
             </div>
           )}
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button disabled={isSubmitting || !canWrite} className="border-2 border-white bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:border-white/20 disabled:bg-white/10 disabled:text-white/30">
-              {isSubmitting ? "Salvataggio..." : editingId ? "Aggiorna prodotto" : "Crea prodotto"}
+            <button
+              disabled={isSubmitting || !canWrite}
+              className="border-2 border-white bg-white px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:bg-transparent hover:text-white disabled:cursor-not-allowed disabled:border-white/20 disabled:bg-white/10 disabled:text-white/30"
+            >
+              {isSubmitting ? "Salvataggio…" : editingId ? "Aggiorna prodotto" : "Crea prodotto"}
             </button>
-            <button type="button" disabled={isSubmitting} onClick={cancelEdit} className="admin-link disabled:cursor-not-allowed disabled:text-white/25">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={cancelEdit}
+              className="admin-link disabled:cursor-not-allowed disabled:text-white/25"
+            >
               Reset
             </button>
           </div>
         </form>
 
+        {/* ── LISTA PRODOTTI ── */}
         <section className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 border border-white/8 bg-[#111] p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-              <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cerca nome, slug o SKU" className="input-admin flex-1" />
-              <select value={catFilter} onChange={(event) => setCatFilter(event.target.value)} className="input-admin lg:w-52">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cerca nome, slug o SKU…"
+                className="input-admin flex-1"
+              />
+              <select
+                value={catFilter}
+                onChange={(e) => setCatFilter(e.target.value)}
+                className="input-admin lg:w-52"
+              >
                 <option value="all">Tutte le categorie</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>{category.name} ({category.count})</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} ({cat.count})
+                  </option>
                 ))}
               </select>
-              <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value as StockFilter)} className="input-admin lg:w-44">
-                <option value="all">Tutti gli stati</option>
+              <select
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value as StockFilter)}
+                className="input-admin lg:w-44"
+              >
+                <option value="all">Tutti</option>
                 <option value="in">In stock</option>
                 <option value="out">Esauriti</option>
               </select>
-              <select value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)} className="input-admin lg:w-48">
-                <option value="name">Ordina per nome</option>
-                <option value="price">Ordina per prezzo</option>
-                <option value="category">Ordina per categoria</option>
-                <option value="stock">Ordina per stock</option>
-                <option value="status">Ordina per stato</option>
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                className="input-admin lg:w-44"
+              >
+                <option value="name">Per nome</option>
+                <option value="price">Per prezzo</option>
+                <option value="category">Per categoria</option>
+                <option value="stock">Per stock</option>
+                <option value="status">Per stato</option>
               </select>
             </div>
-
             <div className="flex flex-wrap gap-3 text-xs font-semibold">
-              <span className="border border-white/10 bg-white/5 px-4 py-2 text-white">{filteredProducts.length} prodotti</span>
-              <span className="border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-emerald-300">{filteredProducts.filter((product) => product.inStock).length} in stock</span>
-              <span className="border border-red-400/30 bg-red-400/10 px-4 py-2 text-red-300">{filteredProducts.filter((product) => !product.inStock).length} esauriti</span>
+              <span className="border border-white/10 bg-white/5 px-4 py-2 text-white">
+                {filteredProducts.length} prodotti
+              </span>
+              <span className="border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-emerald-300">
+                {filteredProducts.filter((p) => p.inStock).length} in stock
+              </span>
+              <span className="border border-red-400/30 bg-red-400/10 px-4 py-2 text-red-300">
+                {filteredProducts.filter((p) => !p.inStock).length} esauriti
+              </span>
             </div>
           </div>
 
@@ -485,45 +768,158 @@ export function AdminProductsManager({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/8 bg-white/3">
-                    <th className="px-5 py-4 text-left text-xs uppercase tracking-[0.2em] text-white/30">Prodotto</th>
-                    <th className="px-5 py-4 text-left text-xs uppercase tracking-[0.2em] text-white/30">Categoria</th>
-                    <th className="px-5 py-4 text-left text-xs uppercase tracking-[0.2em] text-white/30">Prezzo</th>
-                    <th className="px-5 py-4 text-left text-xs uppercase tracking-[0.2em] text-white/30">Stato</th>
-                    <th className="px-5 py-4 text-left text-xs uppercase tracking-[0.2em] text-white/30">Stock</th>
-                    <th className="px-5 py-4 text-left text-xs uppercase tracking-[0.2em] text-white/30">Azioni</th>
+                    <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.2em] text-white/30">Prodotto</th>
+                    <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.2em] text-white/30">Cat.</th>
+                    <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.2em] text-white/30">Prezzo</th>
+                    <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.2em] text-white/30">Stato</th>
+                    <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.2em] text-white/30">Stock</th>
+                    <th className="px-4 py-3 text-left text-xs uppercase tracking-[0.2em] text-white/30">Azioni</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredProducts.map((product) => {
-                    const thumb = product.images.find((image) => image.isThumbnail) ?? product.images[0];
+                    const thumb = product.images.find((img) => img.isThumbnail) ?? product.images[0];
+                    const isEditingStock = stockEditId === product.id;
 
                     return (
-                      <tr key={product.id} className="border-b border-white/5 transition hover:bg-white/3">
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            {thumb && (
-                              <div className="relative h-10 w-10 shrink-0 overflow-hidden border border-white/8 bg-[#1a1a1a]">
-                                <Image src={thumb.url} alt={product.name} fill className="object-cover" sizes="40px" />
+                      <Fragment key={product.id}>
+                        <tr
+                          className="border-b border-white/5 align-top transition hover:bg-white/3"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              {thumb && (
+                                <div className="relative h-9 w-9 shrink-0 overflow-hidden border border-white/8 bg-[#1a1a1a]">
+                                  <Image
+                                    src={thumb.url}
+                                    alt={product.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="36px"
+                                  />
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium text-white">{product.name}</p>
+                                <p className="text-xs text-white/30">{product.sku || product.slug}</p>
                               </div>
-                            )}
-                            <div>
-                              <p className="font-medium text-white">{product.name}</p>
-                              <p className="text-xs text-white/30">{product.sku || product.slug}</p>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4"><span className="border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/60">{product.categoryName}</span></td>
-                        <td className="px-5 py-4 font-semibold text-white">{formatPrice(product.priceCents)}</td>
-                        <td className="px-5 py-4"><span className={`border px-2.5 py-1 text-xs font-semibold ${statusClassName(product.status, product.inStock)}`}>{statusLabel(product.status, product.inStock)}</span></td>
-                        <td className="px-5 py-4 text-white/40">{stockCount(product)} pz / {product.sizes.length} taglie</td>
-                        <td className="px-5 py-4">
-                          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em]">
-                            <button type="button" onClick={() => beginEdit(product)} className="text-white/60 transition hover:text-white">Modifica</button>
-                            <button type="button" disabled={isSubmitting || !canWrite || product.status === "ARCHIVED"} onClick={() => handleArchive(product.id)} className="text-red-300 transition hover:text-red-200 disabled:cursor-not-allowed disabled:text-white/20">Archivia</button>
-                            <Link href={`/product/${product.slug}`} className="text-white/40 transition hover:text-white">Vedi</Link>
-                          </div>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/60">
+                              {product.categoryName}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-white">
+                            {formatPrice(product.priceCents)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`border px-2 py-0.5 text-xs font-semibold ${statusClassName(product.status, product.inStock)}`}>
+                              {statusLabel(product.status, product.inStock)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-white/50">
+                            {isEditingStock ? (
+                              <span className="text-xs text-white/30">modifica ↓</span>
+                            ) : (
+                              <span>{stockCount(product)} pz</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em]">
+                              <button
+                                type="button"
+                                onClick={() => beginEdit(product)}
+                                className="text-white/60 transition hover:text-white"
+                              >
+                                Modifica
+                              </button>
+                              {canWrite && !isEditingStock && (
+                                <button
+                                  type="button"
+                                  onClick={() => beginStockEdit(product)}
+                                  className="text-blue-300 transition hover:text-blue-200"
+                                >
+                                  Stock
+                                </button>
+                              )}
+                              {isEditingStock && (
+                                <button
+                                  type="button"
+                                  onClick={() => setStockEditId(null)}
+                                  className="text-white/40 transition hover:text-white"
+                                >
+                                  Chiudi
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                disabled={isSubmitting || !canWrite || product.status === "ARCHIVED"}
+                                onClick={() => handleArchive(product.id)}
+                                className="text-red-300 transition hover:text-red-200 disabled:cursor-not-allowed disabled:text-white/20"
+                              >
+                                Archivia
+                              </button>
+                              <Link
+                                href={`/product/${product.slug}`}
+                                className="text-white/40 transition hover:text-white"
+                              >
+                                Vedi
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                        {isEditingStock && (
+                          <tr key={`${product.id}-stock`} className="border-b border-white/8 bg-white/2">
+                            <td colSpan={6} className="px-4 py-4">
+                              <div className="flex flex-wrap items-end gap-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+                                  Stock rapido — {product.name}
+                                </p>
+                                <div className="flex flex-wrap gap-3">
+                                  {product.sizes.map((variant) => (
+                                    <label key={variant.id} className="flex flex-col gap-1">
+                                      <span className="text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                                        {variant.label}
+                                      </span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={stockValues[variant.id] ?? String(variant.stock)}
+                                        onChange={(e) =>
+                                          setStockValues((cur) => ({
+                                            ...cur,
+                                            [variant.id]: e.target.value,
+                                          }))
+                                        }
+                                        className="input-admin w-20"
+                                      />
+                                    </label>
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  disabled={isSubmitting}
+                                  onClick={handleStockSave}
+                                  className="border-2 border-white bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-black transition hover:bg-transparent hover:text-white disabled:opacity-40"
+                                >
+                                  {isSubmitting ? "…" : "Salva stock"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setStockEditId(null)}
+                                  className="admin-link text-xs"
+                                >
+                                  Annulla
+                                </button>
+                              </div>
+                              {error && (
+                                <p className="mt-2 text-xs text-red-300">{error}</p>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -536,10 +932,14 @@ export function AdminProductsManager({
   );
 }
 
+// ── piccoli componenti ──────────────────────────────────────────────────────
+
 function Field({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
   return (
     <label className={className}>
-      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">{label}</span>
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -554,24 +954,36 @@ function EditorPanel({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
   return (
     <label className="flex items-center gap-3 text-sm text-white/70">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-white" />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 accent-white"
+      />
       {label}
     </label>
   );
 }
+
+// ── helper di stato form ────────────────────────────────────────────────────
 
 function updateForm<Key extends keyof ProductFormState>(
   setForm: Dispatch<SetStateAction<ProductFormState>>,
   key: Key,
   value: ProductFormState[Key],
 ) {
-  setForm((current) => ({
-    ...current,
-    [key]: value,
-  }));
+  setForm((cur) => ({ ...cur, [key]: value }));
 }
 
 function buildEmptyForm(categories: AppCategory[], databaseEnabled: boolean): ProductFormState {
@@ -586,7 +998,7 @@ function buildEmptyForm(categories: AppCategory[], databaseEnabled: boolean): Pr
 
 function emptyImageRow(sortOrder: number): ImageFormRow {
   return {
-    localId: crypto.randomUUID(),
+    localId: genId(),
     url: "",
     alt: "",
     width: null,
@@ -597,7 +1009,7 @@ function emptyImageRow(sortOrder: number): ImageFormRow {
 
 function emptyVariantRow(slug = "prodotto"): VariantFormRow {
   return {
-    localId: crypto.randomUUID(),
+    localId: genId(),
     sku: `${slug || "prodotto"}-uni`,
     size: "UNI",
     color: "",
@@ -608,46 +1020,40 @@ function emptyVariantRow(slug = "prodotto"): VariantFormRow {
 function updateImageRow(form: ProductFormState, localId: string, patch: Partial<ImageFormRow>): ProductFormState {
   return {
     ...form,
-    images: form.images.map((image) => (image.localId === localId ? { ...image, ...patch } : image)),
+    images: form.images.map((img) => (img.localId === localId ? { ...img, ...patch } : img)),
   };
 }
 
 function updateVariantRow(form: ProductFormState, localId: string, patch: Partial<VariantFormRow>): ProductFormState {
   return {
     ...form,
-    variants: form.variants.map((variant) => (variant.localId === localId ? { ...variant, ...patch } : variant)),
+    variants: form.variants.map((v) => (v.localId === localId ? { ...v, ...patch } : v)),
   };
 }
 
 function removeImage(form: ProductFormState, localId: string): ProductFormState {
-  const images = form.images.filter((image) => image.localId !== localId);
+  const images = form.images.filter((img) => img.localId !== localId);
   return {
     ...form,
-    images: (images.length > 0 ? images : [emptyImageRow(0)]).map((image, index) => ({ ...image, sortOrder: index })),
+    images: (images.length > 0 ? images : [emptyImageRow(0)]).map((img, i) => ({
+      ...img,
+      sortOrder: i,
+    })),
   };
 }
 
 function moveImage(form: ProductFormState, localId: string, direction: -1 | 1): ProductFormState {
   const images = [...form.images];
-  const index = images.findIndex((image) => image.localId === localId);
-  const nextIndex = index + direction;
-  if (index < 0 || nextIndex < 0 || nextIndex >= images.length) {
-    return form;
-  }
-
-  [images[index], images[nextIndex]] = [images[nextIndex], images[index]];
-  return {
-    ...form,
-    images: images.map((image, imageIndex) => ({ ...image, sortOrder: imageIndex })),
-  };
+  const index = images.findIndex((img) => img.localId === localId);
+  const next = index + direction;
+  if (index < 0 || next < 0 || next >= images.length) return form;
+  [images[index], images[next]] = [images[next], images[index]];
+  return { ...form, images: images.map((img, i) => ({ ...img, sortOrder: i })) };
 }
 
 function removeVariant(form: ProductFormState, localId: string): ProductFormState {
-  const variants = form.variants.filter((variant) => variant.localId !== localId);
-  return {
-    ...form,
-    variants: variants.length > 0 ? variants : [emptyVariantRow(form.slug)],
-  };
+  const variants = form.variants.filter((v) => v.localId !== localId);
+  return { ...form, variants: variants.length > 0 ? variants : [emptyVariantRow(form.slug)] };
 }
 
 function handleFileChange(
@@ -657,19 +1063,20 @@ function handleFileChange(
 ) {
   const file = event.target.files?.[0];
   event.target.value = "";
-  if (file) {
-    void uploadImage(localId, file);
-  }
+  if (file) void uploadImage(localId, file);
 }
 
 function buildPayload(form: ProductFormState) {
+  const priceCents = Math.round(parseFloat(form.price || "0") * 100);
+  const compareAtCents = form.compareAt ? Math.round(parseFloat(form.compareAt) * 100) : null;
+
   return {
     name: form.name,
     slug: form.slug,
     description: form.description,
     categoryId: form.categoryId,
-    priceCents: Number(form.priceCents),
-    compareAtCents: form.compareAtCents ? Number(form.compareAtCents) : null,
+    priceCents,
+    compareAtCents,
     status: form.status,
     featured: form.featured,
     limitedEdition: form.limitedEdition,
@@ -679,28 +1086,36 @@ function buildPayload(form: ProductFormState) {
     seoTitle: form.seoTitle,
     seoDescription: form.seoDescription,
     images: form.images
-      .filter((image) => image.url.trim())
-      .map((image, index) => ({
-        url: image.url.trim(),
-        alt: image.alt.trim(),
-        width: image.width,
-        height: image.height,
-        sortOrder: index,
+      .filter((img) => img.url.trim())
+      .map((img, i) => ({
+        url: img.url.trim(),
+        alt: img.alt.trim(),
+        width: img.width,
+        height: img.height,
+        sortOrder: i,
       })),
-    variants: form.variants.map((variant) => ({
-      sku: variant.sku.trim(),
-      size: variant.size.trim(),
-      color: variant.color.trim(),
-      stock: Number(variant.stock),
+    variants: form.variants.map((v) => ({
+      sku: v.sku.trim(),
+      size: v.size.trim(),
+      color: v.color.trim(),
+      stock: Number(v.stock),
     })),
   };
 }
 
-function normalizeStatus(status: AppProduct["status"]): ProductStatus {
-  if (status === "ARCHIVED" || status === "DRAFT") {
-    return status;
-  }
+// ── utility ─────────────────────────────────────────────────────────────────
 
+function slugifyValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+function normalizeStatus(status: AppProduct["status"]): ProductStatus {
+  if (status === "ARCHIVED" || status === "DRAFT") return status;
   return "ACTIVE";
 }
 
@@ -719,14 +1134,10 @@ function statusClassName(status: AppProduct["status"], inStock: boolean) {
 }
 
 function stockCount(product: AppProduct) {
-  return product.sizes.reduce((sum, size) => sum + size.stock, 0);
-}
-
-function seoTitleFallback(form: ProductFormState) {
-  return form.name ? `${form.name} - Jacopo Peca` : "Nome prodotto - Jacopo Peca";
+  return product.sizes.reduce((sum, s) => sum + s.stock, 0);
 }
 
 function seoDescriptionFallback(form: ProductFormState, categories: AppCategory[]) {
-  const category = categories.find((item) => item.id === form.categoryId)?.name ?? "Streetwear";
-  return `${category} handmade Jacopo Peca. Pezzo unico made in Italy.`;
+  const cat = categories.find((c) => c.id === form.categoryId)?.name ?? "Streetwear";
+  return `${cat} handmade Jacopo Peca. Pezzo unico made in Italy.`;
 }

@@ -15,21 +15,18 @@ export default async function HomePage() {
 
   return (
     <main className="flex flex-1 flex-col">
-      {/* Hero — video background */}
-      <section className="relative flex min-h-[90vh] items-center">
+      {/* Hero */}
+      <section className="relative flex min-h-[90vh] items-center overflow-hidden bg-black">
         <video
           autoPlay
-          muted
           loop
+          muted
           playsInline
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover opacity-50"
         >
-          <source
-            src="/wp-content/uploads/2024/05/document_5913386766420677671.mp4"
-            type="video/mp4"
-          />
+          <source src="/wp-content/uploads/2023/09/NQIW5815.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),rgba(0,0,0,0.7))]" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-24 lg:px-10">
           <p className="text-sm uppercase tracking-[0.5em] text-white/50">
@@ -158,15 +155,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* About strip — with hero image background */}
-      <section className="relative overflow-hidden">
-        <Image
-          src="/wp-content/uploads/2024/01/IMG_4158-scaled.webp"
-          alt="Jacopo Peca Atelier"
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-black/70" />
+      {/* About strip */}
+      <section className="relative overflow-hidden border-t border-white/8 bg-[#0d0d0d]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_80%_50%,rgba(255,255,255,0.03)_0%,transparent_70%)]" />
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-24 lg:px-10">
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-[0.4em] text-white/40">

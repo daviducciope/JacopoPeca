@@ -66,13 +66,18 @@ export type AdminProductsPageData = {
 };
 
 export type AdminDashboardData = {
-  revenue: string;
+  // catalog
   products: number;
   inStock: number;
   categories: number;
-  topProducts: string[];
-  lowStock: Array<{ name: string; category: string }>;
   byCat: Array<{ name: string; count: number }>;
+  lowStock: Array<{ name: string; category: string }>;
+  // orders (real — populated only when DB is available)
+  revenueFormatted: string;
+  ordersTotal: number;
+  ordersLast30: number;
+  aovFormatted: string;
+  topProducts: Array<{ name: string; qty: number }>;
   databaseEnabled: boolean;
   usingFallbackData: boolean;
 };
@@ -381,22 +386,69 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const { products, categories, databaseEnabled, usingFallbackData } = await getAdminProductsPageData();
   const inStock = products.filter((product) => product.inStock);
   const outOfStock = products.filter((product) => !product.inStock);
-  const totalRevenuePotential = inStock.reduce((sum, product) => sum + product.priceCents, 0);
+
+  let revenueFormatted = "—";
+  let ordersTotal = 0;
+  let ordersLast30 = 0;
+  let aovFormatted = "—";
+  let topProducts: Array<{ name: string; qty: number }> = inStock
+    .slice(0, 3)
+    .map((p) => ({ name: p.name, qty: 0 }));
+
+  if (prisma && !usingFallbackData) {
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const [orderStats, recentCount, topItems] = await Promise.all([
+        prisma.order.aggregate({
+          where: { status: "PAID" },
+          _sum: { totalCents: true },
+          _count: { _all: true },
+          _avg: { totalCents: true },
+        }),
+        prisma.order.count({
+          where: { status: "PAID", createdAt: { gte: thirtyDaysAgo } },
+        }),
+        prisma.orderItem.groupBy({
+          by: ["productName"],
+          _sum: { quantity: true },
+          orderBy: { _sum: { quantity: "desc" } },
+          take: 3,
+        }),
+      ]);
+
+      const totalRevenueCents = orderStats._sum.totalCents ?? 0;
+      const count = orderStats._count._all;
+      const avgCents = orderStats._avg.totalCents ?? 0;
+
+      revenueFormatted = formatPrice(totalRevenueCents);
+      ordersTotal = count;
+      ordersLast30 = recentCount;
+      aovFormatted = count > 0 ? formatPrice(Math.round(avgCents)) : "—";
+      topProducts = topItems.map((item) => ({
+        name: item.productName,
+        qty: item._sum.quantity ?? 0,
+      }));
+    } catch (error) {
+      console.error("Unable to load order stats for dashboard.", error);
+    }
+  }
 
   return {
-    revenue: formatPrice(totalRevenuePotential),
     products: products.length,
     inStock: inStock.length,
     categories: categories.length,
-    topProducts: inStock.slice(0, 3).map((product) => product.name),
-    lowStock: outOfStock.slice(0, 3).map((product) => ({
+    byCat: categories.map((category) => ({ name: category.name, count: category.count })),
+    lowStock: outOfStock.slice(0, 5).map((product) => ({
       name: product.name,
       category: product.categoryName,
     })),
-    byCat: categories.map((category) => ({
-      name: category.name,
-      count: category.count,
-    })),
+    revenueFormatted,
+    ordersTotal,
+    ordersLast30,
+    aovFormatted,
+    topProducts,
     databaseEnabled,
     usingFallbackData,
   };
@@ -460,12 +512,19 @@ function buildImages(input: AdminProductInput) {
 }
 
 function buildVariants(input: AdminProductInput) {
-  return input.variants.map((variant) => ({
-    sku: variant.sku || `${input.slug}-${slugifyValue(variant.size)}`,
-    size: variant.size,
-    color: normalizeOptionalText(variant.color),
-    stock: variant.stock,
-  }));
+  const seen = new Set<string>();
+  return input.variants.map((variant, index) => {
+    const base = variant.sku || `${input.slug}-${slugifyValue(variant.size)}`;
+    // Append index when two variants would collide on the same auto-generated SKU
+    const sku = seen.has(base) ? `${base}-${index + 1}` : base;
+    seen.add(sku);
+    return {
+      sku,
+      size: variant.size,
+      color: normalizeOptionalText(variant.color),
+      stock: variant.stock,
+    };
+  });
 }
 
 function buildProductData(input: AdminProductInput) {
@@ -540,6 +599,24 @@ export async function archiveAdminProduct(productId: string) {
       featured: false,
     },
   });
+
+  return mapSavedProduct(productId);
+}
+
+export async function updateAdminProductStock(
+  productId: string,
+  updates: Array<{ id: string; stock: number }>,
+) {
+  const db = requirePrisma();
+
+  await db.$transaction(
+    updates.map(({ id, stock }) =>
+      db.productVariant.update({
+        where: { id, productId },
+        data: { stock },
+      }),
+    ),
+  );
 
   return mapSavedProduct(productId);
 }

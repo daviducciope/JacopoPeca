@@ -13,10 +13,22 @@ const assetRemotePattern = assetBaseUrl
     })()
   : null;
 
+const S3_ASSET_BASE = "https://jacopopeca-assets-089081311517-prod.s3.eu-central-1.amazonaws.com";
+
 const nextConfig: NextConfig = {
   output: deployTarget === "static" ? "export" : "standalone",
   trailingSlash: true,
+  skipTrailingSlashRedirect: true,
   reactCompiler: true,
+  async redirects() {
+    return [
+      {
+        source: "/wp-content/uploads/:path*",
+        destination: `${S3_ASSET_BASE}/wp-content/uploads/:path*`,
+        permanent: true,
+      },
+    ];
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

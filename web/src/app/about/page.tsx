@@ -94,7 +94,7 @@ export default function AboutPage() {
         <div className="mt-8 grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
           {aboutGallery.map((image, index) => (
             <div key={image.src} className={`relative overflow-hidden border border-white/8 bg-[#111] ${index === 0 ? "min-h-[26rem]" : "min-h-[18rem]"}`}>
-              <Image src={image.src} alt={image.alt} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 33vw" />
+              <Image src={image.src} alt={image.alt} fill className="object-cover opacity-80" sizes="(max-width: 1024px) 100vw, 33vw" />
             </div>
           ))}
         </div>
