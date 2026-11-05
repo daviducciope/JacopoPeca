@@ -1,9 +1,28 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import { CartProvider } from "@/lib/cart";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getSiteUrl, siteName } from "@/lib/seo";
 import "./globals.css";
+
+const poppins = localFont({
+  src: [
+    { path: "./fonts/poppins-300.woff2", weight: "300" },
+    { path: "./fonts/poppins-400.woff2", weight: "400" },
+    { path: "./fonts/poppins-500.woff2", weight: "500" },
+    { path: "./fonts/poppins-600.woff2", weight: "600" },
+    { path: "./fonts/poppins-700.woff2", weight: "700" },
+  ],
+  variable: "--font-poppins",
+  display: "swap",
+  preload: false,
+});
+const roadRage = localFont({
+  src: "./fonts/road-rage-400.woff2",
+  variable: "--font-road-rage",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -37,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it" className="h-full antialiased">
+    <html lang="it" className={`h-full antialiased ${poppins.variable} ${roadRage.variable}`}>
       <body className="min-h-full flex flex-col">
         <CartProvider>
           <Navbar />

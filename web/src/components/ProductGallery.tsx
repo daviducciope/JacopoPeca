@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/StoreImage";
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 
 export interface GalleryImage {
@@ -84,7 +84,8 @@ export default function ProductGallery({
           src={activeImage.url}
           alt={activeImage.alt || `${productName} — ${categoryName} Jacopo Peca`}
           fill
-          priority={activeIndex === 0}
+          loading="eager"
+          fetchPriority="high"
           sizes="(max-width: 1024px) 100vw, 55vw"
           onClick={() => setLightboxOpen(true)}
           className="cursor-zoom-in object-cover transition duration-500 group-hover:scale-[1.02]"

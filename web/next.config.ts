@@ -30,7 +30,10 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    unoptimized: true,
+    // Static exports have no image server; runtime deployments resize on demand.
+    unoptimized: deployTarget === "static",
+    formats: ["image/webp"],
+    minimumCacheTTL: 14400,
     remotePatterns: [
       {
         protocol: "https",

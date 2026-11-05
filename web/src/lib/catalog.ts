@@ -2317,11 +2317,6 @@ export const products: CatalogProduct[] = [
         "isThumbnail": false
       },
       {
-        "url": "/wp-content/uploads/2024/08/Che-doppio-w34-2-scaled.jpg",
-        "alt": "CHE DOPPIO (W 34)",
-        "isThumbnail": false
-      },
-      {
         "url": "/wp-content/uploads/2024/08/Che-doppio-w34-3-scaled.jpg",
         "alt": "CHE DOPPIO (W 34)",
         "isThumbnail": false
@@ -2523,16 +2518,6 @@ export const products: CatalogProduct[] = [
       },
       {
         "url": "/wp-content/uploads/2024/08/Doppia-fenice-7-1-scaled.jpg",
-        "alt": "DOPPIA FENICE",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-3.jpg",
-        "alt": "DOPPIA FENICE",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909-3.jpg",
         "alt": "DOPPIA FENICE",
         "isThumbnail": false
       },
@@ -2842,16 +2827,6 @@ export const products: CatalogProduct[] = [
         "isThumbnail": false
       },
       {
-        "url": "/wp-content/uploads/2024/09/1000635909-4.jpg",
-        "alt": "FACCIA A FACCIA",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-4.jpg",
-        "alt": "FACCIA A FACCIA",
-        "isThumbnail": false
-      },
-      {
         "url": "/wp-content/uploads/2023/10/photo_5861685513935764821_y.jpg",
         "alt": "FACCIA A FACCIA",
         "isThumbnail": false
@@ -2928,16 +2903,6 @@ export const products: CatalogProduct[] = [
       },
       {
         "url": "/wp-content/uploads/2024/07/bianco-su-bianco-4-scaled.jpg",
-        "alt": "BIANCO SU BIANCO",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909-2.jpg",
-        "alt": "BIANCO SU BIANCO",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-2.jpg",
         "alt": "BIANCO SU BIANCO",
         "isThumbnail": false
       },
@@ -3027,16 +2992,6 @@ export const products: CatalogProduct[] = [
         "isThumbnail": false
       },
       {
-        "url": "/wp-content/uploads/2024/09/1000635909-10.jpg",
-        "alt": "SINOGRAMMA",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-10.jpg",
-        "alt": "SINOGRAMMA",
-        "isThumbnail": false
-      },
-      {
         "url": "/wp-content/uploads/2023/10/photo_5861685513935764821_y.jpg",
         "alt": "SINOGRAMMA",
         "isThumbnail": false
@@ -3083,16 +3038,6 @@ export const products: CatalogProduct[] = [
       },
       {
         "url": "/wp-content/uploads/2024/07/Falso-6-scaled.jpg",
-        "alt": "FALSO",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909-5.jpg",
-        "alt": "FALSO",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-5.jpg",
         "alt": "FALSO",
         "isThumbnail": false
       },
@@ -3163,16 +3108,6 @@ export const products: CatalogProduct[] = [
         "isThumbnail": false
       },
       {
-        "url": "/wp-content/uploads/2024/09/1000635910-1.jpg",
-        "alt": "ALT",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909-1.jpg",
-        "alt": "ALT",
-        "isThumbnail": false
-      },
-      {
         "url": "/wp-content/uploads/2023/10/photo_5861685513935764821_y.jpg",
         "alt": "ALT",
         "isThumbnail": false
@@ -3218,16 +3153,6 @@ export const products: CatalogProduct[] = [
         "isThumbnail": false
       },
       {
-        "url": "/wp-content/uploads/2024/09/1000635910-6.jpg",
-        "alt": "FANCULO L'ARTE",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909-6.jpg",
-        "alt": "FANCULO L'ARTE",
-        "isThumbnail": false
-      },
-      {
         "url": "/wp-content/uploads/2023/10/photo_5861685513935764821_y.jpg",
         "alt": "FANCULO L'ARTE",
         "isThumbnail": false
@@ -3264,16 +3189,6 @@ export const products: CatalogProduct[] = [
       },
       {
         "url": "/wp-content/uploads/2024/07/Agli-ordini-4-scaled.jpg",
-        "alt": "AGLI ORDINI",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909.jpg",
-        "alt": "AGLI ORDINI",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910.jpg",
         "alt": "AGLI ORDINI",
         "isThumbnail": false
       },
@@ -3324,16 +3239,6 @@ export const products: CatalogProduct[] = [
       },
       {
         "url": "/wp-content/uploads/2024/07/Luomo-con-il-cappello-6-scaled.jpg",
-        "alt": "L'UOMO CON IL CAPPELLO",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-9.jpg",
-        "alt": "L'UOMO CON IL CAPPELLO",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909-9.jpg",
         "alt": "L'UOMO CON IL CAPPELLO",
         "isThumbnail": false
       },
@@ -3393,16 +3298,6 @@ export const products: CatalogProduct[] = [
         "isThumbnail": false
       },
       {
-        "url": "/wp-content/uploads/2024/09/1000635909-7.jpg",
-        "alt": "IL FANTASMA NEL BOSCO",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-7.jpg",
-        "alt": "IL FANTASMA NEL BOSCO",
-        "isThumbnail": false
-      },
-      {
         "url": "/wp-content/uploads/2023/10/photo_5861685513935764821_y.jpg",
         "alt": "IL FANTASMA NEL BOSCO",
         "isThumbnail": false
@@ -3449,16 +3344,6 @@ export const products: CatalogProduct[] = [
       },
       {
         "url": "/wp-content/uploads/2024/07/King-Kong-1933-5-scaled.jpg",
-        "alt": "KING KONG 1933",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635910-8.jpg",
-        "alt": "KING KONG 1933",
-        "isThumbnail": false
-      },
-      {
-        "url": "/wp-content/uploads/2024/09/1000635909-8.jpg",
         "alt": "KING KONG 1933",
         "isThumbnail": false
       },
@@ -3784,11 +3669,6 @@ export const products: CatalogProduct[] = [
         "url": "/wp-content/uploads/2023/12/krokodil-front-jeans-scaled.webp",
         "alt": "KROKODIL",
         "isThumbnail": true
-      },
-      {
-        "url": "/wp-content/uploads/2023/12/krocodil-retro-jeans-scaled.webp",
-        "alt": "KROKODIL",
-        "isThumbnail": false
       },
       {
         "url": "/wp-content/uploads/2023/12/krokodil-dettaglio-1-scaled.webp",

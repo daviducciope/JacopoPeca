@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { z } from "zod";
 import type { Prisma, ProductStatus } from "@prisma/client";
 
@@ -151,7 +152,17 @@ export const adminProductSchema = z.object({
 
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
 
+// These WooCommerce attachments were never recovered locally or on S3.
+// Keep them out of the storefront so galleries don't request broken photos.
+const UNAVAILABLE_PRODUCT_IMAGE =
+  /(?:1000635909(?:-\d+)?|1000635910(?:-\d+)?|krocodil-retro-jeans-scaled|Che-doppio-w34-2-scaled)\.[a-z0-9]+$/i;
+
+function availableImages<T extends { url: string }>(images: T[]): T[] {
+  return images.filter((image) => image.url.trim() && !UNAVAILABLE_PRODUCT_IMAGE.test(image.url));
+}
+
 function toFallbackProduct(product: (typeof fallbackProducts)[number]): AppProduct {
+  const images = availableImages(product.images);
   return {
     id: String(product.id),
     slug: product.slug,
@@ -164,14 +175,14 @@ function toFallbackProduct(product: (typeof fallbackProducts)[number]): AppProdu
     categoryId: product.categorySlug,
     categorySlug: product.categorySlug,
     categoryName: product.categoryName,
-    images: product.images.map((image, index) => ({
+    images: images.map((image, index) => ({
       id: `${product.id}-image-${index}`,
       url: image.url,
       alt: image.alt,
       width: null,
       height: null,
       sortOrder: index,
-      isThumbnail: image.isThumbnail,
+      isThumbnail: image.isThumbnail || index === 0,
     })),
     sizes: product.sizes.map((size, index) => ({
       id: `${product.id}-size-${index}`,
@@ -226,7 +237,7 @@ function toAppProduct(product: ProductWithRelations): AppProduct {
     categoryId: product.categoryId,
     categorySlug: product.category.slug,
     categoryName: product.category.name,
-    images: product.images.map((image, index) => ({
+    images: availableImages(product.images).map((image, index) => ({
       id: image.id,
       url: image.url,
       alt: image.alt,
@@ -270,7 +281,8 @@ function buildCategories(products: AppProduct[]): AppCategory[] {
   return [...counts.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
-async function loadProductsFromDatabase(includeArchived = false) {
+// Share catalogue reads within a render, keeping stock fresh on every request.
+const loadProductsFromDatabase = cache(async (includeArchived = false) => {
   if (!prisma) {
     return null;
   }
@@ -287,7 +299,7 @@ async function loadProductsFromDatabase(includeArchived = false) {
     console.error("Database products unavailable, using fallback catalog.", error);
     return null;
   }
-}
+});
 
 async function loadCategoriesFromDatabase(includeArchived = false) {
   if (!prisma) {
@@ -341,7 +353,9 @@ export async function getStorefrontCategories(): Promise<AppCategory[]> {
 }
 
 export async function getFeaturedStorefrontProducts(limit = 8): Promise<AppProduct[]> {
-  const products = await getStorefrontProducts();
+  const products = (await getStorefrontProducts()).filter((product) =>
+    product.images.some((image) => image.url.trim().length > 0),
+  );
   return selectDiverseStorefrontProducts(products, limit);
 }
 

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/StoreImage";
 import { ArrowUpRight, ArrowDown } from "lucide-react";
+
+import HeroVideo from "@/components/HeroVideo";
 
 import { HomeDrop } from "@/components/HomeDrop";
 import { getFeaturedStorefrontProducts, getStorefrontCategories } from "@/lib/product-data";
@@ -18,18 +20,8 @@ export default async function HomePage() {
     <main className="home-page flex flex-1 flex-col">
       {/* Hero */}
       <section className="home-hero relative flex items-center overflow-hidden bg-black">
-        <video
-          poster="/images/atelier/atelier-embroidery.jpg"
-          preload="metadata"
-          aria-hidden="true"
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover opacity-60"
-        >
-          <source src="/wp-content/uploads/2023/09/NQIW5815.mp4" type="video/mp4" />
-        </video>
+        <link rel="preload" as="image" href="/images/atelier/atelier-embroidery-hero.webp" fetchPriority="high" />
+        <HeroVideo />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),rgba(0,0,0,0.7))]" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 py-16 sm:px-6 lg:px-10 lg:py-24">

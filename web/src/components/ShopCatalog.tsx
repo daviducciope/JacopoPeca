@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/StoreImage";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -125,6 +125,12 @@ function ShopCatalogContent({
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
+  const [previewedProducts, setPreviewedProducts] = useState<Set<string>>(() => new Set());
+  const [loadedPreviews, setLoadedPreviews] = useState<Set<string>>(() => new Set());
+
+  function loadPreview(id: string) {
+    setPreviewedProducts((current) => current.has(id) ? current : new Set([...current, id]));
+  }
 
   const activeCategoryObj = useMemo(
     () => categories.find((c) => c.slug === selectedCategory),
@@ -636,6 +642,10 @@ function ShopCatalogContent({
                 <Link
                   key={product.id}
                   href={`/product/${product.slug}`}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType === "mouse") loadPreview(product.id);
+                  }}
+                  onFocus={() => loadPreview(product.id)}
                   className={`group flex flex-col overflow-hidden border border-white/12 bg-[#111] transition duration-300 hover:border-white/35 ${
                     !product.inStock ? "opacity-80" : ""
                   }`}
@@ -649,13 +659,13 @@ function ShopCatalogContent({
                           alt={thumb.alt || `${product.name} — Jacopo Peca`}
                           fill
                           className={`object-cover transition duration-700 ${
-                            secondaryImage
+                            secondaryImage && loadedPreviews.has(product.id)
                               ? "group-hover:opacity-0"
                               : "group-hover:scale-105"
                           }`}
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          sizes="(max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 300px"
                         />
-                        {secondaryImage && (
+                        {secondaryImage && previewedProducts.has(product.id) && (
                           <Image
                             src={secondaryImage.url}
                             alt={
@@ -663,8 +673,9 @@ function ShopCatalogContent({
                               `${product.name} dettaglio — Jacopo Peca`
                             }
                             fill
+                            onLoad={() => setLoadedPreviews((current) => new Set([...current, product.id]))}
                             className="object-cover opacity-0 transition duration-700 group-hover:scale-105 group-hover:opacity-100"
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            sizes="(max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 300px"
                           />
                         )}
                       </>

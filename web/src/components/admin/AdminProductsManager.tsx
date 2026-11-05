@@ -2,10 +2,22 @@
 
 import type { ChangeEvent, Dispatch, DragEvent, ReactNode, SetStateAction } from "react";
 import { Fragment, startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/StoreImage";
 import Link from "next/link";
 
 import { AdminNav } from "@/components/admin/AdminNav";
+import {
+  buildDefaultStudioSettings,
+  formatFileSize,
+  PHOTO_FRAME_MODES,
+  PHOTO_PRESETS,
+  PhotoStudioModal,
+  processPhonePhotoForWeb,
+  type PhotoFrameMode,
+  type PhotoPresetId,
+  type PhotoStudioSettings,
+  type ProcessedPhotoResult,
+} from "@/components/admin/PhotoStudioModal";
 import { formatPrice } from "@/lib/catalog";
 import type { AdminProductsPageData, AppCategory, AppProduct } from "@/lib/product-data";
 
@@ -32,6 +44,11 @@ type ImageFormRow = {
   sortOrder: number;
   uploading?: boolean;
   fileName?: string;
+  rawFile?: File;
+  originalSizeBytes?: number;
+  outputSizeBytes?: number;
+  formatLabel?: "WEBP" | "JPG";
+  studioSettings?: PhotoStudioSettings;
 };
 
 type VariantFormRow = {
@@ -103,6 +120,11 @@ export function AdminProductsManager({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [manualImageUrl, setManualImageUrl] = useState("");
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+
+  // Automatic Phone Photo Studio pipeline settings
+  const [autoPhotoPreset, setAutoPhotoPreset] = useState<PhotoPresetId>("auto_studio");
+  const [autoFrameMode, setAutoFrameMode] = useState<PhotoFrameMode>("smart_4_5");
+  const [studioEditingImageId, setStudioEditingImageId] = useState<string | null>(null);
 
   // New Category inline creation
   const [showNewCategory, setShowNewCategory] = useState(false);
@@ -269,6 +291,55 @@ export function AdminProductsManager({
     }
   }
 
+  async function uploadFileToStorage(file: File): Promise<string> {
+    // 1. Try direct server-side upload first (most reliable, immune to browser S3 CORS issues)
+    let publicUrl: string | null = null;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const directRes = await fetch("/api/admin/uploads/direct/", {
+        method: "POST",
+        body: formData,
+      });
+      if (directRes.ok) {
+        const directData = await directRes.json();
+        publicUrl = directData.publicUrl;
+      }
+    } catch {
+      // Fallback to presigned S3 upload below
+    }
+
+    // 2. Fallback to S3 presigned URL if needed
+    if (!publicUrl) {
+      const presignResponse = await fetch("/api/admin/uploads/presign/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || "image/webp",
+          size: file.size,
+        }),
+      });
+      const presign = await presignResponse.json();
+      if (!presignResponse.ok) {
+        throw new Error(presign.error || "Upload immagine non riuscito.");
+      }
+
+      const uploadResponse = await fetch(presign.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "image/webp" },
+        body: file,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error("Errore durante il trasferimento dell'immagine.");
+      }
+      publicUrl = presign.publicUrl;
+    }
+
+    return publicUrl || "";
+  }
+
   async function handleFilesSelected(fileList: FileList | File[]) {
     const files = Array.from(fileList).filter(
       (f) => f.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif|avif|heic|heif)$/i.test(f.name),
@@ -280,6 +351,8 @@ export function AdminProductsManager({
 
     setError(null);
 
+    const activeStudioSettings = buildDefaultStudioSettings(autoPhotoPreset, autoFrameMode);
+
     // Create placeholder rows for each selected file
     const newPlaceholders: ImageFormRow[] = files.map((file, idx) => ({
       localId: genId(),
@@ -290,6 +363,9 @@ export function AdminProductsManager({
       sortOrder: idx,
       uploading: true,
       fileName: file.name,
+      rawFile: file,
+      originalSizeBytes: file.size,
+      studioSettings: activeStudioSettings,
     }));
 
     setForm((current) => {
@@ -301,74 +377,72 @@ export function AdminProductsManager({
       return { ...current, images: merged };
     });
 
-    // Upload all selected files in parallel
+    // Process & upload all selected files in parallel
     await Promise.all(
-      files.map((file, idx) => uploadSingleFile(newPlaceholders[idx].localId, file)),
+      files.map((file, idx) =>
+        uploadSingleFile(newPlaceholders[idx].localId, file, activeStudioSettings),
+      ),
     );
   }
 
-  async function uploadSingleFile(localId: string, rawFile: File) {
+  async function uploadSingleFile(
+    localId: string,
+    rawFile: File,
+    studioSettings: PhotoStudioSettings,
+  ) {
     try {
-      const file = await normalizeAndCompressImage(rawFile);
-
-      // 1. Try direct server-side upload first (most reliable, immune to browser S3 CORS issues)
-      let publicUrl: string | null = null;
-
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const directRes = await fetch("/api/admin/uploads/direct/", {
-          method: "POST",
-          body: formData,
-        });
-        if (directRes.ok) {
-          const directData = await directRes.json();
-          publicUrl = directData.publicUrl;
-        }
-      } catch {
-        // Fallback to presigned S3 upload below
-      }
-
-      // 2. Fallback to S3 presigned URL if needed
-      if (!publicUrl) {
-        const presignResponse = await fetch("/api/admin/uploads/presign/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filename: file.name,
-            contentType: file.type || "image/jpeg",
-            size: file.size,
-          }),
-        });
-        const presign = await presignResponse.json();
-        if (!presignResponse.ok) {
-          throw new Error(presign.error || "Upload immagine non riuscito.");
-        }
-
-        const uploadResponse = await fetch(presign.uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type || "image/jpeg" },
-          body: file,
-        });
-        if (!uploadResponse.ok) {
-          throw new Error("Errore durante il trasferimento dell'immagine.");
-        }
-        publicUrl = presign.publicUrl;
-      }
+      const processed = await processPhonePhotoForWeb(rawFile, studioSettings);
+      const publicUrl = await uploadFileToStorage(processed.file);
 
       setForm((current) =>
         updateImageRow(current, localId, {
-          url: publicUrl || "",
+          url: publicUrl,
           alt:
             current.images.find((img) => img.localId === localId)?.alt ||
             current.name ||
             rawFile.name.replace(/\.[^.]+$/, ""),
+          width: processed.width,
+          height: processed.height,
           uploading: false,
+          rawFile,
+          originalSizeBytes: processed.originalSizeBytes,
+          outputSizeBytes: processed.outputSizeBytes,
+          formatLabel: processed.formatLabel,
+          studioSettings: processed.appliedSettings,
         }),
       );
     } catch (err) {
       setForm((current) => removeImage(current, localId));
       setError(err instanceof Error ? err.message : "Errore durante il caricamento della foto.");
+    }
+  }
+
+  async function handleStudioApply(localId: string, result: ProcessedPhotoResult) {
+    setError(null);
+    setForm((current) =>
+      updateImageRow(current, localId, {
+        uploading: true,
+      }),
+    );
+
+    try {
+      const publicUrl = await uploadFileToStorage(result.file);
+      setForm((current) =>
+        updateImageRow(current, localId, {
+          url: publicUrl,
+          width: result.width,
+          height: result.height,
+          uploading: false,
+          outputSizeBytes: result.outputSizeBytes,
+          formatLabel: result.formatLabel,
+          studioSettings: result.appliedSettings,
+        }),
+      );
+    } catch (err) {
+      setForm((current) => updateImageRow(current, localId, { uploading: false }));
+      setError(
+        err instanceof Error ? err.message : "Errore durante il salvataggio della foto ottimizzata.",
+      );
     }
   }
 
@@ -917,7 +991,7 @@ export function AdminProductsManager({
                     <div>
                       <h3 className="text-lg font-bold text-white">Foto del Prodotto *</h3>
                       <p className="text-xs text-white/50">
-                        Carica una o più foto dal computer o dal telefono. La prima foto sarà la copertina nello shop.
+                        Scatta o carica dal telefono: vengono convertite in automatico in WebP HD e ottimizzate per la vetrina.
                       </p>
                     </div>
                   </div>
@@ -928,6 +1002,79 @@ export function AdminProductsManager({
                   >
                     {showUrlInput ? "Nascondi inserimento link URL" : "+ Incolla link URL immagine"}
                   </button>
+                </div>
+
+                {/* ── BARRA OTTIMIZZAZIONE AUTOMATICA FOTO DA TELEFONO ── */}
+                <div className="mt-4 border border-emerald-400/30 bg-emerald-950/15 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-emerald-400 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-black">
+                        ⚡ Studio Web Attivo
+                      </span>
+                      <span className="text-xs font-bold text-white">
+                        Ottimizzazione Automatica Foto da Telefono (Formato WebP + Luce &amp; Nitidezza)
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-emerald-300/80">
+                      Converte foto da 10MB in ~150KB nitidissimi in 0.2 secondi
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                    {/* Scelta rapida Resa Grafica in ingresso */}
+                    <div>
+                      <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/60">
+                        Resa Grafica Automatica al Caricamento:
+                      </span>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {PHOTO_PRESETS.map((preset) => {
+                          const active = autoPhotoPreset === preset.id;
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => setAutoPhotoPreset(preset.id)}
+                              className={`cursor-pointer border px-2.5 py-1.5 text-xs font-bold transition ${
+                                active
+                                  ? "border-emerald-400 bg-emerald-500/25 text-white"
+                                  : "border-white/12 bg-black/50 text-white/65 hover:border-white/30 hover:text-white"
+                              }`}
+                              title={preset.description}
+                            >
+                              {preset.shortLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Scelta rapida Inquadratura / Formato E-commerce */}
+                    <div>
+                      <span className="block text-[11px] font-semibold uppercase tracking-wider text-white/60">
+                        Inquadratura &amp; Formato Sito Web:
+                      </span>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {PHOTO_FRAME_MODES.slice(0, 4).map((mode) => {
+                          const active = autoFrameMode === mode.id;
+                          return (
+                            <button
+                              key={mode.id}
+                              type="button"
+                              onClick={() => setAutoFrameMode(mode.id)}
+                              className={`cursor-pointer border px-2.5 py-1.5 text-xs font-bold transition ${
+                                active
+                                  ? "border-white bg-white text-black"
+                                  : "border-white/12 bg-black/50 text-white/65 hover:border-white/30 hover:text-white"
+                              }`}
+                              title={mode.description}
+                            >
+                              {mode.shortLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Dropzone grande e intuitiva */}
@@ -945,7 +1092,7 @@ export function AdminProductsManager({
                     }
                   }}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`mt-4 flex cursor-pointer flex-col items-center justify-center border-2 border-dashed p-8 text-center transition ${
+                  className={`mt-3 flex cursor-pointer flex-col items-center justify-center border-2 border-dashed p-8 text-center transition ${
                     isDraggingFiles
                       ? "border-[#e01010] bg-[#e01010]/10"
                       : "border-white/25 bg-black/40 hover:border-white/50 hover:bg-white/5"
@@ -966,13 +1113,13 @@ export function AdminProductsManager({
                   />
                   <div className="text-3xl">📸</div>
                   <p className="mt-2 text-base font-bold text-white">
-                    Clicca qui per scegliere le foto oppure trascinale qui dentro
+                    Clicca qui per scattare o scegliere le foto dal telefono (oppure trascinale qui)
                   </p>
-                  <p className="mt-1 text-xs text-white/50">
-                    Puoi selezionare anche più foto contemporaneamente (JPG, PNG, WEBP, HEIC da iPhone/Android — ottimizzate in automatico)
+                  <p className="mt-1 text-xs text-white/55">
+                    Conversione istantanea in <strong className="text-white">WebP HD (4:5 Shop)</strong> con correzione luce da laboratorio e nitidezza cuciture/denim
                   </p>
                   <span className="mt-4 inline-block border border-white/30 bg-white px-5 py-2 text-xs font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white/90">
-                    Sfoglia Foto dal Dispositivo
+                    Sfoglia o Scatta Foto dal Telefono
                   </span>
                 </div>
 
@@ -996,101 +1143,143 @@ export function AdminProductsManager({
                   </div>
                 )}
 
-                {/* Griglia Foto Caricate */}
+                {/* Griglia Foto Caricate (Anteprima reale 4:5 come nello Shop) */}
                 {uploadedImages.length > 0 && (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                    {uploadedImages.map((img, index) => (
-                      <div
-                        key={img.localId}
-                        className={`relative flex flex-col justify-between border p-3 transition ${
-                          index === 0
-                            ? "border-emerald-400/50 bg-emerald-950/15"
-                            : "border-white/12 bg-black/40"
-                        }`}
-                      >
-                        <div>
-                          <div className="relative aspect-square w-full overflow-hidden border border-white/10 bg-[#1a1a1a]">
-                            {img.url ? (
-                              <Image
-                                src={img.url}
-                                alt={img.alt || form.name || "Foto prodotto"}
-                                fill
-                                className="object-cover"
-                                sizes="240px"
-                              />
-                            ) : (
-                              <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-xs text-white/60">
-                                <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                                <span>Caricamento in corso…</span>
-                                {img.fileName && (
-                                  <span className="truncate text-[10px] text-white/40">{img.fileName}</span>
-                                )}
-                              </div>
+                    {uploadedImages.map((img, index) => {
+                      const savingsPercent =
+                        img.originalSizeBytes &&
+                        img.outputSizeBytes &&
+                        img.originalSizeBytes > img.outputSizeBytes
+                          ? Math.round(
+                              ((img.originalSizeBytes - img.outputSizeBytes) /
+                                img.originalSizeBytes) *
+                                100,
+                            )
+                          : null;
+
+                      return (
+                        <div
+                          key={img.localId}
+                          className={`relative flex flex-col justify-between border p-3 transition ${
+                            index === 0
+                              ? "border-emerald-400/50 bg-emerald-950/15"
+                              : "border-white/12 bg-black/40"
+                          }`}
+                        >
+                          <div>
+                            <div className="relative aspect-4/5 w-full overflow-hidden border border-white/10 bg-[#141414]">
+                              {img.url && !img.uploading ? (
+                                <Image
+                                  src={img.url}
+                                  alt={img.alt || form.name || "Foto prodotto"}
+                                  fill
+                                  className="object-cover"
+                                  sizes="260px"
+                                />
+                              ) : (
+                                <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-xs text-white/60">
+                                  <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                                  <span>Ottimizzazione Studio WebP…</span>
+                                  {img.fileName && (
+                                    <span className="truncate text-[10px] text-white/40">
+                                      {img.fileName}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {index === 0 && (
+                                <span className="absolute top-2 left-2 bg-emerald-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-black shadow">
+                                  ⭐ Foto Principale
+                                </span>
+                              )}
+                              {img.url && !img.uploading && (
+                                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/90 via-black/65 to-transparent px-2.5 py-1.5 pt-5 text-[10px]">
+                                  <span className="font-bold text-emerald-300">
+                                    ⚡ {img.formatLabel || "WEBP"}
+                                    {img.width && img.height ? ` · ${img.width}×${img.height}` : ""}
+                                  </span>
+                                  {img.outputSizeBytes && (
+                                    <span className="font-mono text-white/80">
+                                      {formatFileSize(img.outputSizeBytes)}
+                                      {savingsPercent ? ` (-${savingsPercent}%)` : ""}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Pulsante Studio Fotografico / Ritaglia */}
+                            {img.url && !img.uploading && (
+                              <button
+                                type="button"
+                                onClick={() => setStudioEditingImageId(img.localId)}
+                                className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1.5 border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-xs font-bold uppercase tracking-wider text-emerald-200 transition hover:border-emerald-300 hover:bg-emerald-400 hover:text-black"
+                              >
+                                ✨ Migliora Luce / Ritaglia Foto
+                              </button>
                             )}
-                            {index === 0 && (
-                              <span className="absolute top-2 left-2 bg-emerald-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-black shadow">
-                                ⭐ Foto Principale
+
+                            <input
+                              type="text"
+                              value={img.alt}
+                              onChange={(e) =>
+                                setForm((cur) =>
+                                  updateImageRow(cur, img.localId, { alt: e.target.value }),
+                                )
+                              }
+                              placeholder="Descrizione foto (opzionale)"
+                              className="mt-2 w-full border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs text-white placeholder:text-white/25 focus:border-white/35 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-1.5 border-t border-white/10 pt-2.5">
+                            {index > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => setForm((cur) => setAsPrimaryImage(cur, img.localId))}
+                                className="cursor-pointer border border-white/15 bg-white/8 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white transition hover:bg-white hover:text-black"
+                              >
+                                ⭐ Imposta Principale
+                              </button>
+                            ) : (
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
+                                Copertina Shop
                               </span>
                             )}
-                          </div>
 
-                          <input
-                            type="text"
-                            value={img.alt}
-                            onChange={(e) =>
-                              setForm((cur) => updateImageRow(cur, img.localId, { alt: e.target.value }))
-                            }
-                            placeholder="Descrizione foto (opzionale)"
-                            className="mt-2 w-full border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs text-white placeholder:text-white/25 focus:border-white/35 focus:outline-none"
-                          />
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-1.5 border-t border-white/10 pt-2.5">
-                          {index > 0 ? (
-                            <button
-                              type="button"
-                              onClick={() => setForm((cur) => setAsPrimaryImage(cur, img.localId))}
-                              className="cursor-pointer border border-white/15 bg-white/8 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white transition hover:bg-white hover:text-black"
-                            >
-                              ⭐ Imposta Principale
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
-                              Copertina Shop
-                            </span>
-                          )}
-
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              disabled={index === 0}
-                              onClick={() => setForm((cur) => moveImage(cur, img.localId, -1))}
-                              className="cursor-pointer border border-white/12 px-2 py-1 text-xs text-white/70 hover:bg-white/10 disabled:opacity-25"
-                              title="Sposta a sinistra"
-                            >
-                              ←
-                            </button>
-                            <button
-                              type="button"
-                              disabled={index === uploadedImages.length - 1}
-                              onClick={() => setForm((cur) => moveImage(cur, img.localId, 1))}
-                              className="cursor-pointer border border-white/12 px-2 py-1 text-xs text-white/70 hover:bg-white/10 disabled:opacity-25"
-                              title="Sposta a destra"
-                            >
-                              →
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setForm((cur) => removeImage(cur, img.localId))}
-                              className="cursor-pointer border border-red-400/25 bg-red-500/10 px-2 py-1 text-xs font-bold text-red-300 hover:bg-red-500/25"
-                              title="Rimuovi foto"
-                            >
-                              ✕
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={index === 0}
+                                onClick={() => setForm((cur) => moveImage(cur, img.localId, -1))}
+                                className="cursor-pointer border border-white/12 px-2 py-1 text-xs text-white/70 hover:bg-white/10 disabled:opacity-25"
+                                title="Sposta a sinistra"
+                              >
+                                ←
+                              </button>
+                              <button
+                                type="button"
+                                disabled={index === uploadedImages.length - 1}
+                                onClick={() => setForm((cur) => moveImage(cur, img.localId, 1))}
+                                className="cursor-pointer border border-white/12 px-2 py-1 text-xs text-white/70 hover:bg-white/10 disabled:opacity-25"
+                                title="Sposta a destra"
+                              >
+                                →
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setForm((cur) => removeImage(cur, img.localId))}
+                                className="cursor-pointer border border-red-400/25 bg-red-500/10 px-2 py-1 text-xs font-bold text-red-300 hover:bg-red-500/25"
+                                title="Rimuovi foto"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -2057,6 +2246,29 @@ export function AdminProductsManager({
             </table>
           </div>
         </section>
+
+        {/* Modale Studio Fotografico & Ritaglio E-Commerce */}
+        {(() => {
+          const targetImg = form.images.find((img) => img.localId === studioEditingImageId);
+          return (
+            <PhotoStudioModal
+              isOpen={Boolean(targetImg)}
+              sourceFile={targetImg?.rawFile}
+              sourceUrl={targetImg?.url}
+              fileName={targetImg?.fileName || `${form.slug || "capo"}-studio.webp`}
+              initialSettings={
+                targetImg?.studioSettings ??
+                buildDefaultStudioSettings(autoPhotoPreset, autoFrameMode)
+              }
+              onClose={() => setStudioEditingImageId(null)}
+              onApply={async (result) => {
+                if (targetImg) {
+                  await handleStudioApply(targetImg.localId, result);
+                }
+              }}
+            />
+          );
+        })()}
       </main>
     </div>
   );
@@ -2276,68 +2488,6 @@ function buildPayload(form: ProductFormState, categories: AppCategory[]) {
       stock: Math.max(0, Number.parseInt(v.stock || "0", 10) || 0),
     })),
   };
-}
-
-/**
- * Normalizza e comprime foto grandi da smartphone/fotocamera (es. 10MB)
- * in JPEG nitidi max 2000px lato lungo, rendendo il caricamento istantaneo.
- */
-async function normalizeAndCompressImage(file: File): Promise<File> {
-  if (typeof window === "undefined") return file;
-  // Gif animate non vanno ricodificate
-  if (file.type === "image/gif") return file;
-  // Se è già un JPEG/WEBP/PNG sotto 1.5MB, caricalo diretto senza attesa
-  if (
-    ["image/jpeg", "image/webp", "image/png"].includes(file.type) &&
-    file.size <= 1.5 * 1024 * 1024
-  ) {
-    return file;
-  }
-
-  return new Promise<File>((resolve) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new window.Image();
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const maxDim = 2000;
-      let { width, height } = img;
-      if (width > maxDim || height > maxDim) {
-        if (width >= height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(file);
-            return;
-          }
-          const cleanName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-          resolve(new File([blob], cleanName, { type: "image/jpeg" }));
-        },
-        "image/jpeg",
-        0.88,
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file);
-    };
-    img.src = objectUrl;
-  });
 }
 
 function slugifyValue(value: string) {

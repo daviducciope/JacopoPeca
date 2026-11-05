@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/StoreImage";
 import Link from "next/link";
 import { MoveRight } from "lucide-react";
 
@@ -20,7 +20,12 @@ function sizeLabel(product: AppProduct): string | null {
 }
 
 export function HomeDrop({ products }: HomeDropProps) {
-  if (products.length === 0) return null;
+  const visible = products.filter((product) => {
+    const thumb = product.images.find((image) => image.isThumbnail) || product.images[0];
+    return Boolean(thumb?.url.trim());
+  });
+
+  if (visible.length === 0) return null;
 
   return (
     <section className="home-drop border-t border-white/10 bg-black" aria-labelledby="home-drop-title">
@@ -52,7 +57,7 @@ export function HomeDrop({ products }: HomeDropProps) {
         </div>
 
         <div className="home-drop-rail mt-6 md:mt-10" aria-label="Selezione mista di prodotti">
-          {products.map((product, index) => {
+          {visible.map((product, index) => {
             const thumb = product.images.find((image) => image.isThumbnail) || product.images[0];
             const sizes = sizeLabel(product);
 

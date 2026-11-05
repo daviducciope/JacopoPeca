@@ -25,30 +25,58 @@ export const contactInfo = {
 };
 
 export const aboutStats = [
+  { label: "Pescara", value: "1984" },
+  { label: "Anni di denim", value: "20+" },
   { label: "Fatto a mano", value: "100%" },
-  { label: "Made in Italy", value: "PE" },
-  { label: "Valutazione clienti", value: "4.9" },
 ];
 
 export const aboutHighlights = [
-  "100% fatto a mano in Italia",
-  "Materiali denim premium selezionati",
-  "Personalizzazioni su richiesta",
-  "Pezzi unici e limited edition",
+  {
+    index: "01",
+    title: "Dal banco al laboratorio",
+    text: "Vent'anni tra i negozi denim della costa, poi le mani sul capo.",
+  },
+  {
+    index: "02",
+    title: "Denim come tela",
+    text: "Strappi, cuciture, patchwork e tattoo clothing. Nessuna stampa in serie.",
+  },
+  {
+    index: "03",
+    title: "Custom, caso per caso",
+    text: "Fit, finiture e tempi si decidono insieme, senza un modulo automatico.",
+  },
+  {
+    index: "04",
+    title: "Tirature corte",
+    text: "Pezzi unici o limited. Ogni intervento resta riconoscibile.",
+  },
 ];
 
 export const aboutGallery = [
   {
     src: "/images/atelier/atelier-embroidery.jpg",
     alt: "Jacopo Peca al lavoro sulla macchina da ricamo Cornely nel laboratorio",
+    caption: "Cornely",
+    detail: "Ricamo a mano",
   },
   {
     src: "/images/atelier/atelier-airbrush.jpg",
     alt: "Lavorazione artigianale e aerografo su capo custom Tattoo JP Clothing",
+    caption: "Aerografo",
+    detail: "Tattoo clothing",
   },
   {
     src: "/images/atelier/atelier-singer.jpg",
     alt: "Cucitura manuale su denim strappato in laboratorio",
+    caption: "Singer",
+    detail: "Cucitura sul denim",
+  },
+  {
+    src: "/images/atelier/atelier-jacket-jp.jpg",
+    alt: "Giacca denim finita a mano nel laboratorio Jacopo Peca",
+    caption: "Denim JP",
+    detail: "Pezzo finito",
   },
 ];
 

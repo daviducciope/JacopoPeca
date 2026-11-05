@@ -141,6 +141,9 @@ function getPrice(product, variations) {
   return null;
 }
 
+const MISSING_UPLOADS =
+  /(?:1000635909(?:-\d+)?|1000635910(?:-\d+)?|krocodil-retro-jeans-scaled|Che-doppio-w34-2-scaled)\.[a-z0-9]+$/i;
+
 function resolveImages(product) {
   const imgs = [];
   if (product.thumbnail_id && imageMap.has(product.thumbnail_id)) {
@@ -165,7 +168,7 @@ function resolveImages(product) {
       }
     }
   }
-  return imgs;
+  return imgs.filter((image) => !MISSING_UPLOADS.test(image.url));
 }
 
 const catalogProducts = [];

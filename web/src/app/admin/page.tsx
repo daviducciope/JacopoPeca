@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
+import Image from "@/components/StoreImage";
 import Link from "next/link";
 
 import { AdminNav } from "@/components/admin/AdminNav";
