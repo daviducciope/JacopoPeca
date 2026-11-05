@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MoveRight } from "lucide-react";
 
 import { formatPrice } from "@/lib/catalog";
+import { buildProductImageAlt } from "@/lib/category-seo";
 import type { AppProduct } from "@/lib/product-data";
 
 type HomeDropProps = {
@@ -71,7 +72,7 @@ export function HomeDrop({ products }: HomeDropProps) {
                   {thumb ? (
                     <Image
                       src={thumb.url}
-                      alt={thumb.alt || product.name}
+                      alt={buildProductImageAlt(product, thumb.alt)}
                       fill
                       className="object-cover transition duration-700 motion-safe:group-hover:scale-[1.04]"
                       sizes="(max-width: 767px) 82vw, (max-width: 1023px) 50vw, 34vw"

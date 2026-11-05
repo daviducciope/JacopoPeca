@@ -207,7 +207,17 @@ export default function CartPage() {
               </label>
               <label className="block text-sm text-white/80">Email (facoltativa, la confermerai al pagamento)<input type="email" autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="nome@esempio.it" className="mt-2 w-full border border-white/30 bg-transparent p-3" /></label>
               <label className="flex items-start gap-3 text-sm text-white/80"><input type="checkbox" checked={marketingOpt} onChange={event => setMarketingOpt(event.target.checked)} className="mt-1" /><span>Iscriviti alla newsletter: nuove uscite e selezioni dal laboratorio. Facoltativo; confermerai via email. <Link href="/privacy-policy" className="underline">Privacy</Link></span></label>
-              <p className="text-xs text-white/70">Prezzi e disponibilità vengono verificati al checkout. Pagamento sicuro con Stripe.</p>
+              <p className="text-xs leading-relaxed text-white/70">
+                Prezzi IVA inclusa; disponibilità verificata al checkout con pagamento sicuro Stripe. Procedendo dichiari di aver letto i{" "}
+                <Link href="/termini-e-condizioni" className="text-white underline underline-offset-4 hover:text-red-400">
+                  Termini e Condizioni di Vendita
+                </Link>{" "}
+                (incluso il diritto di recesso di 14 giorni per i capi standard) e la{" "}
+                <Link href="/privacy-policy" className="text-white underline underline-offset-4 hover:text-red-400">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
               <button
                 onClick={handleCheckout}
                 disabled={loading}

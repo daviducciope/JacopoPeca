@@ -9,7 +9,7 @@
     "build:staging": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:commerce": "node --env-file=.env.local --conditions=react-server --import tsx --test tests/commerce.test.ts",
+    "test:commerce": "node --env-file=.env.local --conditions=react-server --import tsx --test --test-concurrency=1 tests/commerce.test.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"

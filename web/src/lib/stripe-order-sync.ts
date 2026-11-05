@@ -2,7 +2,7 @@ import "server-only";
 
 import Stripe from "stripe";
 import { Prisma } from "@prisma/client";
-import { subscribeNewsletter, siteUrl } from "@/lib/email";
+import { adminNotifyEmail, subscribeNewsletter, siteUrl } from "@/lib/email";
 import { serializeOrderMeta, type OrderAddress } from "@/lib/order-data";
 import { requirePrisma } from "@/lib/prisma";
 
@@ -52,6 +52,74 @@ function parseMetadataItems(metadata: Stripe.Metadata | null | undefined): Check
 function buildOrderNumber(sessionId: string) {
   const datePart = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   return `JP-${datePart}-${sessionId.slice(-8).toUpperCase()}`;
+}
+
+function heldVariantIds(holds: Array<{ items: Prisma.JsonValue }>) {
+  const ids = new Set<string>();
+  for (const hold of holds) {
+    if (!Array.isArray(hold.items)) continue;
+    for (const raw of hold.items) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+      const variantId = "v" in raw && typeof raw.v === "string" ? raw.v : "";
+      const quantity = "q" in raw && typeof raw.q === "number" ? raw.q : 0;
+      if (variantId && quantity > 0) ids.add(variantId);
+    }
+  }
+  return ids;
+}
+
+async function queueAdminSaleAlerts(
+  tx: Prisma.TransactionClient,
+  sessionId: string,
+  order: { id: string; orderNumber: string },
+  items: CheckoutMetadataItem[],
+  totalCents: number,
+  customerEmail: string,
+) {
+  const notify = adminNotifyEmail();
+  if (!notify) return;
+
+  const lines = items.map((item) => `${item.q} × ${item.n} · Taglia ${item.s}`).join("\n");
+  await tx.emailJob.upsert({
+    where: { dedupeKey: `admin-order:${sessionId}` },
+    update: {},
+    create: {
+      dedupeKey: `admin-order:${sessionId}`,
+      email: notify,
+      kind: "admin-order",
+      payload: {
+        title: `Nuovo ordine ${order.orderNumber}`,
+        body: `Pagamento confermato.\n\n${lines}\n\nCliente: ${customerEmail}\nTotale: ${(totalCents / 100).toFixed(2)} €`,
+        url: `${siteUrl()}/admin/orders`,
+        label: "Apri gli ordini",
+      },
+    },
+  });
+
+  const variants = await tx.productVariant.findMany({
+    where: { id: { in: [...new Set(items.map((item) => item.v))] } },
+    select: { id: true, stock: true, size: true, product: { select: { id: true, name: true } } },
+  });
+  const holds = await tx.checkoutReservation.findMany({ where: { state: "HOLD" }, select: { items: true } });
+  const held = heldVariantIds(holds);
+  for (const variant of variants) {
+    if (variant.stock > 0 || held.has(variant.id)) continue;
+    await tx.emailJob.upsert({
+      where: { dedupeKey: `admin-stock:${variant.id}:0:${order.id}` },
+      update: {},
+      create: {
+        dedupeKey: `admin-stock:${variant.id}:0:${order.id}`,
+        email: notify,
+        kind: "admin-stock",
+        payload: {
+          title: `Taglia esaurita: ${variant.product.name} · ${variant.size}`,
+          body: `L’ordine ${order.orderNumber} ha portato a zero la taglia ${variant.size} di ${variant.product.name}. Non restano prenotazioni aperte su questa taglia.`,
+          url: `${siteUrl()}/admin/products?edit=${variant.product.id}`,
+          label: "Ricarica lo stock",
+        },
+      },
+    });
+  }
 }
 
 export async function recordStripeCheckoutSession(
@@ -128,7 +196,7 @@ export async function recordStripeCheckoutSession(
     const taxCents = session.total_details?.amount_tax ?? 0;
     const totalCents = session.amount_total ?? subtotalCents + shippingCents + taxCents;
 
-    await tx.order.create({
+    const order = await tx.order.create({
       data: {
         orderNumber,
         status: "PAID",
@@ -186,6 +254,7 @@ export async function recordStripeCheckoutSession(
         },
       });
     }
+    await queueAdminSaleAlerts(tx, session.id, order, items, totalCents, email);
   }, { isolationLevel: "Serializable" });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

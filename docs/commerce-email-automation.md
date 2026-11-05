@@ -13,6 +13,8 @@ Lo stock viene prenotato atomicamente prima di creare la sessione Stripe (scaden
 | Richiesta iscrizione | Worker successivo, massimo una richiesta per indirizzo ogni 24 ore | Richiesta esplicita; link da confermare entro 7 giorni |
 | Benvenuto | Dopo conferma dell’iscrizione | Sì |
 | Conferma ordine | Pagamento Stripe confermato | No |
+| Avviso ordine al negozio | Stessa conferma, verso `ADMIN_NOTIFY_EMAIL` o il Reply-To | No |
+| Taglia esaurita | Dopo il pagamento, se la taglia è a zero e non ha prenotazioni aperte | No |
 | Spedizione | Ordine segnato spedito o aggiornamento tracking | No |
 | Annullamento / rimborso | Aggiornamento dello stato; rimborso totale Stripe ricevuto via webhook | No |
 | Recupero carrello | 24 ore dopo la scadenza del checkout | Sì; email nota e nessun acquisto successivo |
@@ -35,7 +37,7 @@ La newsletter è disponibile nel footer e come opzione non preselezionata nel ca
 - `jacopopeca.com` non era autenticato al controllo iniziale: sono stati creati solo i record CNAME dedicati al return-path `em-jp` e al selettore DKIM `jpc`. La validazione SendGrid ha confermato tutti e tre i record. Non sono stati modificati MX né record di altri servizi.
 - Segreti esclusivamente nei file env esclusi da Git e nell’ambiente del runtime. Non copiarli in questo documento.
 
-Variabili: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, SENDGRID_REPLY_TO_EMAIL, SENDGRID_MARKETING_GROUP_ID, CRON_SECRET, NEXT_PUBLIC_SITE_URL.
+Variabili: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, SENDGRID_REPLY_TO_EMAIL, ADMIN_NOTIFY_EMAIL, SENDGRID_MARKETING_GROUP_ID, CRON_SECRET, NEXT_PUBLIC_SITE_URL. `ADMIN_NOTIFY_EMAIL` vuota usa il Reply-To. Gli avvisi al negozio non dipendono dal consenso newsletter.
 
 ## Scheduler e monitoraggio
 

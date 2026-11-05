@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowUpRight, Mail, MessageCircle, Sparkles } from "lucide-react";
 
 import { contactInfo } from "@/lib/editorial-data";
@@ -32,8 +32,26 @@ const TOPICS = [
   },
 ] as const;
 
-export default function ContactQuickForm() {
-  const [topicId, setTopicId] = useState<(typeof TOPICS)[number]["id"]>("custom");
+type ContactQuickFormProps = {
+  defaultTopic?: (typeof TOPICS)[number]["id"];
+  eyebrow?: string;
+  title?: string;
+  intro?: ReactNode;
+};
+
+export default function ContactQuickForm({
+  defaultTopic = "custom",
+  eyebrow = "Messaggio Rapido // Diretto in Laboratorio",
+  title = "Scrivi subito a Jacopo",
+  intro = (
+    <>
+      Seleziona il motivo del contatto, compila i dettagli essenziali e invia la richiesta in un clic su{" "}
+      <strong className="font-semibold text-white">WhatsApp</strong> o via{" "}
+      <strong className="font-semibold text-white">Email</strong>, senza attese o call center.
+    </>
+  ),
+}: ContactQuickFormProps) {
+  const [topicId, setTopicId] = useState<(typeof TOPICS)[number]["id"]>(defaultTopic);
   const [name, setName] = useState("");
   const [reference, setReference] = useState("");
   const [message, setMessage] = useState("");
@@ -70,20 +88,14 @@ export default function ContactQuickForm() {
     <div className="border border-white/15 bg-[#121212] p-6 sm:p-8">
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.3em] text-red-500">
         <Sparkles size={14} />
-        <span>Messaggio Rapido // Diretto in Laboratorio</span>
+        <span>{eyebrow}</span>
       </div>
 
       <h2 className="mt-2 font-display text-4xl text-white sm:text-5xl">
-        Scrivi subito a Jacopo
+        {title}
       </h2>
 
-      <p className="mt-2 text-sm leading-relaxed text-white/80">
-        Seleziona il motivo del contatto, compila i dettagli essenziali e invia la
-        richiesta in un clic su{" "}
-        <strong className="font-semibold text-white">WhatsApp</strong> o via{" "}
-        <strong className="font-semibold text-white">Email</strong>{" "}
-        <em className="italic text-white/90">senza attese o call center</em>.
-      </p>
+      <p className="mt-2 text-sm leading-relaxed text-white/80">{intro}</p>
 
       {/* Topic Selector Pills */}
       <div className="mt-6">

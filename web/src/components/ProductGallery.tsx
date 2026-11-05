@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "@/components/StoreImage";
+import { buildProductImageAlt } from "@/lib/category-seo";
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 
 export interface GalleryImage {
@@ -15,6 +16,7 @@ interface ProductGalleryProps {
   images: GalleryImage[];
   productName: string;
   categoryName: string;
+  categorySlug?: string;
   inStock: boolean;
   badge?: string | null;
 }
@@ -23,6 +25,7 @@ export default function ProductGallery({
   images,
   productName,
   categoryName,
+  categorySlug,
   inStock,
   badge,
 }: ProductGalleryProps) {
@@ -82,7 +85,11 @@ export default function ProductGallery({
         <Image
           key={activeImage.url}
           src={activeImage.url}
-          alt={activeImage.alt || `${productName} — ${categoryName} Jacopo Peca`}
+          alt={buildProductImageAlt(
+            { name: productName, categoryName, categorySlug },
+            activeImage.alt,
+            activeIndex > 0 ? `vista ${activeIndex + 1}` : undefined,
+          )}
           fill
           loading="eager"
           fetchPriority="high"
@@ -167,7 +174,11 @@ export default function ProductGallery({
               >
                 <Image
                   src={img.url}
-                  alt={img.alt || `${productName} vista ${idx + 1}`}
+                  alt={buildProductImageAlt(
+                    { name: productName, categoryName, categorySlug },
+                    img.alt,
+                    `vista ${idx + 1}`,
+                  )}
                   fill
                   sizes="(max-width: 768px) 20vw, 11vw"
                   className="object-cover transition duration-300 group-hover:scale-105"
@@ -190,7 +201,7 @@ export default function ProductGallery({
           <div className="flex items-center justify-between border-b border-white/12 px-5 py-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-red-500">
-                {categoryName} // Dettaglio Lavorazione
+                {categoryName} {"//"} Dettaglio Lavorazione
               </p>
               <p className="font-display text-2xl text-white">
                 {productName}{" "}
@@ -220,7 +231,11 @@ export default function ProductGallery({
             >
               <Image
                 src={activeImage.url}
-                alt={activeImage.alt || productName}
+                alt={buildProductImageAlt(
+                  { name: productName, categoryName, categorySlug },
+                  activeImage.alt,
+                  activeIndex > 0 ? `vista ${activeIndex + 1}` : undefined,
+                )}
                 fill
                 sizes="100vw"
                 className="object-contain"
@@ -271,7 +286,11 @@ export default function ProductGallery({
                 >
                   <Image
                     src={img.url}
-                    alt={img.alt || `${productName} ${idx + 1}`}
+                    alt={buildProductImageAlt(
+                      { name: productName, categoryName, categorySlug },
+                      img.alt,
+                      `miniatura ${idx + 1}`,
+                    )}
                     fill
                     sizes="56px"
                     className="object-cover"

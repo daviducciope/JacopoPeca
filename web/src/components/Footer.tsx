@@ -2,17 +2,22 @@
 
 import Link from "next/link";
 import NewsletterForm from "@/components/NewsletterForm";
+import { useCookieConsent } from "@/lib/cookie-consent";
 import { contactInfo, socials, storeCategories } from "@/lib/editorial-data";
+import { categoryHref } from "@/lib/category-seo";
 
 const infoLinks = [
   { label: "Chi siamo", href: "/about" },
   { label: "Denim Customize", href: "/denim-customize" },
   { label: "Contatti", href: "/contatti" },
   { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Cookie Policy", href: "/cookie-policy" },
   { label: "Termini e Condizioni", href: "/termini-e-condizioni" },
 ];
 
 export default function Footer() {
+  const { openPreferences } = useCookieConsent();
+  const vatNumber = process.env.NEXT_PUBLIC_VAT_NUMBER;
   return (
     <footer className="mt-auto bg-[#0d0d0d] border-t border-[#2a2a2a]" style={{ paddingTop: "64px" }}>
       {/* ── 4-column grid ── */}
@@ -64,7 +69,7 @@ export default function Footer() {
             {storeCategories.map((cat) => (
               <li key={cat.slug}>
                 <Link
-                  href={`/shop?cat=${cat.slug}`}
+                  href={categoryHref(cat.slug)}
                   className="text-[13px] text-[#888888] hover:text-[#f8f8f8] transition-colors tracking-[0.3px]"
                 >
                   {cat.name}
@@ -90,6 +95,15 @@ export default function Footer() {
                 </Link>
               </li>
             ))}
+            <li>
+              <button
+                type="button"
+                onClick={openPreferences}
+                className="text-left text-[13px] text-[#888888] hover:text-[#f8f8f8] transition-colors tracking-[0.3px]"
+              >
+                Preferenze Cookie
+              </button>
+            </li>
           </ul>
         </div>
 
@@ -156,13 +170,121 @@ export default function Footer() {
       </div>
 
       <NewsletterForm />
-      {/* ── Bottom bar ── */}
-      <div className="border-t border-[#2a2a2a] py-5 text-center text-[12px] text-[#888888] tracking-[0.5px]">
-        <div className="mx-auto max-w-[1280px] px-5">
-          &copy; {new Date().getFullYear()} Jacopo Peca. Tutti i diritti riservati. &mdash;{" "}
-          <Link href="/privacy-policy" className="text-[#e01010] hover:opacity-80 transition-opacity">
-            Privacy Policy
-          </Link>
+
+      {/* ── Partner & Credits Showcase + Bottom Bar ── */}
+      <div className="border-t border-[#2a2a2a] bg-[#090909]/90 py-7 text-[12px] text-[#888888] tracking-[0.5px]">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-5">
+          {/* Partner & Agency Badges */}
+          <div className="flex flex-col items-center justify-between gap-4 border-b border-white/[0.07] pb-6 sm:flex-row sm:flex-wrap">
+            {/* Badge 1: We are on sircompare.com */}
+            <a
+              href="https://sircompare.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="We are on sircompare.com"
+              className="group relative flex w-full items-center gap-3.5 rounded-md border border-white/10 bg-gradient-to-r from-[#111822]/90 via-[#121212] to-[#141414] px-4 py-2.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-400/45 hover:shadow-[0_8px_28px_-6px_rgba(56,189,248,0.22)] sm:w-auto"
+            >
+              <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#0b192c] p-0.5 ring-1 ring-sky-400/30 transition-all duration-300 group-hover:scale-105 group-hover:ring-sky-400/70 group-hover:shadow-[0_0_16px_rgba(56,189,248,0.35)]">
+                <img
+                  src="/images/partners/sir-compare-logo.webp"
+                  alt="Sir Compare logo"
+                  width={44}
+                  height={44}
+                  loading="lazy"
+                  className="h-full w-full rounded-full object-contain"
+                />
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+                <span className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[2.4px] text-sky-300/80">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                  We are on
+                </span>
+                <span className="mt-0.5 flex items-center gap-1 text-[14px] font-semibold tracking-[0.4px] text-[#f8f8f8] transition-colors group-hover:text-sky-300">
+                  sircompare.com
+                  <svg
+                    className="h-3.5 w-3.5 text-white/40 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-sky-300"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </a>
+
+            {/* Badge 2: Powered by Stà Comunicazione & Design */}
+            <a
+              href="https://stacomunicazionedesign.it/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Powered by Stà Comunicazione e Design"
+              className="group relative flex w-full items-center gap-4 rounded-md border border-white/10 bg-gradient-to-r from-[#141414] via-[#121212] to-[#0f1922]/85 px-4 py-2.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#009fe3]/45 hover:shadow-[0_8px_28px_-6px_rgba(0,159,227,0.22)] sm:w-auto"
+            >
+              <div className="flex h-11 flex-shrink-0 items-center justify-center rounded bg-white/[0.03] px-2.5 py-1.5 ring-1 ring-white/10 transition-all duration-300 group-hover:bg-white/[0.06] group-hover:ring-[#009fe3]/50">
+                <img
+                  src="/images/partners/sta-bianco.png"
+                  alt="Stà Comunicazione & Design logo"
+                  width={56}
+                  height={40}
+                  loading="lazy"
+                  className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105 group-hover:drop-shadow-[0_0_10px_rgba(0,159,227,0.4)]"
+                />
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-[9.5px] font-semibold uppercase tracking-[2.4px] text-white/50">
+                  Powered by
+                </span>
+                <span className="mt-0.5 flex items-center gap-1 text-[13.5px] font-semibold tracking-[0.3px] text-[#f8f8f8] transition-colors group-hover:text-[#38bdf8]">
+                  Stà Comunicazione &amp; Design
+                  <svg
+                    className="h-3.5 w-3.5 text-white/40 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#38bdf8]"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </a>
+          </div>
+
+          {/* Copyright & Legal Links */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center">
+            <span>
+              &copy; {new Date().getFullYear()} Jacopo Peca · {contactInfo.address}
+              {vatNumber ? ` · P.IVA ${vatNumber}` : ""}
+            </span>
+            <span aria-hidden="true">&middot;</span>
+            <Link href="/privacy-policy" className="text-[#e01010] hover:opacity-80 transition-opacity">
+              Privacy Policy
+            </Link>
+            <span aria-hidden="true">&middot;</span>
+            <Link href="/cookie-policy" className="text-[#e01010] hover:opacity-80 transition-opacity">
+              Cookie Policy
+            </Link>
+            <span aria-hidden="true">&middot;</span>
+            <Link href="/termini-e-condizioni" className="text-[#e01010] hover:opacity-80 transition-opacity">
+              Termini e Condizioni
+            </Link>
+            <span aria-hidden="true">&middot;</span>
+            <button
+              type="button"
+              onClick={openPreferences}
+              className="text-[#888888] underline underline-offset-4 hover:text-[#f8f8f8] transition-colors"
+            >
+              Preferenze Cookie
+            </button>
+          </div>
         </div>
       </div>
     </footer>

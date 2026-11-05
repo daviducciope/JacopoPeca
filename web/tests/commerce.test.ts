@@ -78,7 +78,6 @@ test("stock reservation, dedupe, consent gating and SendGrid retry", async () =>
     await db.newsletterSubscription.deleteMany({ where: { email } });
     await db.product.delete({ where: { id: product.id } });
     await db.category.delete({ where: { id: category.id } });
-    await db.$disconnect();
   }
 });
 
@@ -91,6 +90,9 @@ test("a paid checkout consumes its reservation exactly once and queues one recei
   const variant = product.variants[0];
   let reservation: Awaited<ReturnType<typeof reserveCheckout>> | undefined;
   const sessionId = `cs_test_${suffix}`;
+  const notify = `shop-${suffix}@example.invalid`;
+  const previousNotify = process.env.ADMIN_NOTIFY_EMAIL;
+  process.env.ADMIN_NOTIFY_EMAIL = notify;
   try {
     reservation = await reserveCheckout([{ v: variant.id, q: 1 }]);
     const session = {
@@ -105,6 +107,8 @@ test("a paid checkout consumes its reservation exactly once and queues one recei
     assert.equal(first.orderNumber, replay.orderNumber);
     assert.equal(await db.order.count({ where: { stripeCheckoutId: sessionId } }), 1);
     assert.equal(await db.emailJob.count({ where: { email, kind: "order-confirmation" } }), 1);
+    assert.equal(await db.emailJob.count({ where: { email: notify, kind: "admin-order" } }), 1);
+    assert.equal(await db.emailJob.count({ where: { email: notify, kind: "admin-stock" } }), 0, "Remaining stock must not alert");
     assert.equal(await db.newsletterSubscription.count({ where: { email } }), 0, "A purchase never subscribes the customer without consent");
     assert.equal((await db.checkoutReservation.findUniqueOrThrow({ where: { id: reservation.id } })).state, "PAID");
     await releaseReservation(reservation.id);
@@ -112,11 +116,129 @@ test("a paid checkout consumes its reservation exactly once and queues one recei
   } finally {
     await db.order.deleteMany({ where: { stripeCheckoutId: sessionId } });
     await db.customer.deleteMany({ where: { email } });
-    await db.emailJob.deleteMany({ where: { email } });
+    await db.emailJob.deleteMany({ where: { OR: [{ email }, { email: notify }, { dedupeKey: `admin-order:${sessionId}` }] } });
     if (reservation) await db.checkoutReservation.delete({ where: { id: reservation.id } });
     await db.product.delete({ where: { id: product.id } });
     await db.category.delete({ where: { id: category.id } });
-    await db.$disconnect();
+    if (previousNotify === undefined) delete process.env.ADMIN_NOTIFY_EMAIL;
+    else process.env.ADMIN_NOTIFY_EMAIL = previousNotify;
+  }
+});
+
+test("a sale that empties a size queues one shop alert and ignores open holds until the last payment", async () => {
+  const { recordStripeCheckoutSession } = await import("../src/lib/stripe-order-sync");
+  const { processEmailJobs } = await import("../src/lib/email");
+  const suffix = randomUUID();
+  const email = `soldout-${suffix}@example.invalid`;
+  const notify = `shop-soldout-${suffix}@example.invalid`;
+  const previousNotify = process.env.ADMIN_NOTIFY_EMAIL;
+  const previousKey = process.env.SENDGRID_API_KEY;
+  const previousFrom = process.env.SENDGRID_FROM_EMAIL;
+  process.env.ADMIN_NOTIFY_EMAIL = notify;
+  process.env.SENDGRID_API_KEY ||= "mock-provider-key";
+  process.env.SENDGRID_FROM_EMAIL ||= "test@example.invalid";
+  const category = await db.category.create({ data: { slug: `soldout-${suffix}`, name: "Sold out fixture" } });
+  const product = await db.product.create({
+    data: {
+      slug: `soldout-${suffix}`, name: "Sold out fixture", description: "Temporary fixture", priceCents: 100, status: "ACTIVE", categoryId: category.id,
+      variants: { create: [{ sku: `soldout-a-${suffix}`, size: "S", stock: 1 }, { sku: `soldout-b-${suffix}`, size: "M", stock: 2 }] },
+    },
+    include: { variants: true },
+  });
+  const soldOut = product.variants.find((variant) => variant.size === "S")!;
+  const held = product.variants.find((variant) => variant.size === "M")!;
+  const reservations: string[] = [];
+  const sessionIds: string[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    const payload = JSON.parse(String(init?.body));
+    assert.equal(payload.personalizations[0].to[0].email, notify);
+    return new Response(null, { status: 202 });
+  };
+  try {
+    const emptyReservation = await reserveCheckout([{ v: soldOut.id, q: 1 }]);
+    reservations.push(emptyReservation.id);
+    const emptySessionId = `cs_test_${suffix}_empty`;
+    sessionIds.push(emptySessionId);
+    const emptySession = {
+      id: emptySessionId, payment_status: "paid", currency: "eur", amount_subtotal: 100, amount_total: 100,
+      customer_details: { email, name: "Test Customer" },
+      metadata: { store: "jacopopeca", reservation_id: emptyReservation.id, marketing_opt: "false", items_count: "1", item_0: JSON.stringify({ p: product.id, v: soldOut.id, s: "S", q: 1, n: product.name, u: 100 }) },
+    } as unknown as import("stripe").default.Checkout.Session;
+    await recordStripeCheckoutSession(emptySession);
+    await recordStripeCheckoutSession(emptySession);
+    assert.equal(await db.emailJob.count({ where: { dedupeKey: `admin-order:${emptySessionId}` } }), 1);
+    assert.equal(await db.emailJob.count({ where: { dedupeKey: { startsWith: `admin-stock:${soldOut.id}:0:` } } }), 1);
+
+    const firstHold = await reserveCheckout([{ v: held.id, q: 1 }]);
+    const secondHold = await reserveCheckout([{ v: held.id, q: 1 }]);
+    reservations.push(firstHold.id, secondHold.id);
+    const firstSessionId = `cs_test_${suffix}_hold1`;
+    const secondSessionId = `cs_test_${suffix}_hold2`;
+    sessionIds.push(firstSessionId, secondSessionId);
+    const paidSession = (id: string, reservationId: string) => ({
+      id, payment_status: "paid", currency: "eur", amount_subtotal: 100, amount_total: 100,
+      customer_details: { email, name: "Test Customer" },
+      metadata: { store: "jacopopeca", reservation_id: reservationId, marketing_opt: "false", items_count: "1", item_0: JSON.stringify({ p: product.id, v: held.id, s: "M", q: 1, n: product.name, u: 100 }) },
+    }) as unknown as import("stripe").default.Checkout.Session;
+    await recordStripeCheckoutSession(paidSession(firstSessionId, firstHold.id));
+    assert.equal(await db.emailJob.count({ where: { dedupeKey: { startsWith: `admin-stock:${held.id}:0:` } } }), 0, "An open hold still accounts for the last piece");
+    await recordStripeCheckoutSession(paidSession(secondSessionId, secondHold.id));
+    assert.equal(await db.emailJob.count({ where: { dedupeKey: { startsWith: `admin-stock:${held.id}:0:` } } }), 1);
+
+    const sent = await processEmailJobs(notify);
+    assert.equal(sent.sent, 5, "Shop alerts are transactional and do not wait for newsletter consent");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (previousNotify === undefined) delete process.env.ADMIN_NOTIFY_EMAIL;
+    else process.env.ADMIN_NOTIFY_EMAIL = previousNotify;
+    if (previousKey === undefined) delete process.env.SENDGRID_API_KEY;
+    else process.env.SENDGRID_API_KEY = previousKey;
+    if (previousFrom === undefined) delete process.env.SENDGRID_FROM_EMAIL;
+    else process.env.SENDGRID_FROM_EMAIL = previousFrom;
+    await db.emailJob.deleteMany({ where: { OR: [{ email }, { email: notify }, { dedupeKey: { in: sessionIds.map((id) => `admin-order:${id}`) } }] } });
+    await db.order.deleteMany({ where: { stripeCheckoutId: { in: sessionIds } } });
+    await db.customer.deleteMany({ where: { email } });
+    await db.checkoutReservation.deleteMany({ where: { id: { in: reservations } } });
+    await db.product.delete({ where: { id: product.id } });
+    await db.category.delete({ where: { id: category.id } });
+  }
+});
+
+test("shop alerts are skipped when no notify address is configured", async () => {
+  const { recordStripeCheckoutSession } = await import("../src/lib/stripe-order-sync");
+  const suffix = randomUUID();
+  const email = `silent-${suffix}@example.invalid`;
+  const previousNotify = process.env.ADMIN_NOTIFY_EMAIL;
+  const previousReply = process.env.SENDGRID_REPLY_TO_EMAIL;
+  delete process.env.ADMIN_NOTIFY_EMAIL;
+  delete process.env.SENDGRID_REPLY_TO_EMAIL;
+  const category = await db.category.create({ data: { slug: `silent-${suffix}`, name: "Silent fixture" } });
+  const product = await db.product.create({
+    data: { slug: `silent-${suffix}`, name: "Silent fixture", description: "Temporary fixture", priceCents: 100, status: "DRAFT", categoryId: category.id, variants: { create: { sku: `silent-${suffix}`, size: "U", stock: 1 } } },
+    include: { variants: true },
+  });
+  const sessionId = `cs_test_silent_${suffix}`;
+  try {
+    const session = {
+      id: sessionId, payment_status: "paid", currency: "eur", amount_subtotal: 100, amount_total: 100,
+      customer_details: { email, name: "Test Customer" },
+      metadata: { store: "jacopopeca", marketing_opt: "false", items_count: "1", item_0: JSON.stringify({ p: product.id, v: product.variants[0].id, s: "U", q: 1, n: product.name, u: 100 }) },
+    } as unknown as import("stripe").default.Checkout.Session;
+    const result = await recordStripeCheckoutSession(session);
+    assert.equal(result.created, true);
+    assert.equal(await db.emailJob.count({ where: { dedupeKey: `admin-order:${sessionId}` } }), 0);
+    assert.equal((await db.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock, 0);
+  } finally {
+    if (previousNotify === undefined) delete process.env.ADMIN_NOTIFY_EMAIL;
+    else process.env.ADMIN_NOTIFY_EMAIL = previousNotify;
+    if (previousReply === undefined) delete process.env.SENDGRID_REPLY_TO_EMAIL;
+    else process.env.SENDGRID_REPLY_TO_EMAIL = previousReply;
+    await db.emailJob.deleteMany({ where: { OR: [{ email }, { dedupeKey: `admin-order:${sessionId}` }] } });
+    await db.order.deleteMany({ where: { stripeCheckoutId: sessionId } });
+    await db.customer.deleteMany({ where: { email } });
+    await db.product.delete({ where: { id: product.id } });
+    await db.category.delete({ where: { id: category.id } });
   }
 });
 

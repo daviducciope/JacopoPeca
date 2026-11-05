@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { formatPrice } from "@/lib/catalog";
+import { buildProductImageAlt, categoryHref, getCategorySeo } from "@/lib/category-seo";
 import type { AppCategory, AppProduct } from "@/lib/product-data";
 
 type ShopCatalogProps = {
@@ -30,46 +31,58 @@ const CATEGORY_EDITORIAL: Record<
   { title: string; subtitle: string; highlight: string }
 > = {
   "jeans-2": {
-    title: "Jeans Handcrafted & Custom",
+    title: "Jeans Personalizzati Fatti a Mano",
     subtitle:
       "Denim selezionato e trasformato a mano con strappi calibrati, patchwork, cuciture a vista e interventi pittorici.",
     highlight: "Ogni paio di jeans è lavorato singolarmente in laboratorio.",
   },
   "t-shirt": {
-    title: "T-Shirt Streetwear Dipinte a Mano",
+    title: "T-Shirt Dipinte a Mano",
     subtitle:
       "Cotone strutturato, grafiche d'archivio, aerografo e dettagli tattoo clothing che rendono ogni maglia diversa dalle altre.",
     highlight: "Nessuna stampa industriale in serie: solo lavorazione manuale.",
   },
   sweatshirt: {
-    title: "Felpe Custom & Limited Edition",
+    title: "Felpe Personalizzate Fatte a Mano",
     subtitle:
       "Volumi streetwear, trattamenti manuali, inserti in tessuto, aerografo e cuciture artigianali eseguite in laboratorio.",
     highlight: "Pezzi caldi, strutturati e dal carattere urbano irripetibile.",
   },
   "giacca-denim": {
-    title: "Giacche Denim Artigianali",
+    title: "Giacche di Jeans Personalizzate",
     subtitle:
       "Il capo manifesto di Jacopo Peca: giacche in denim usate come tele vive tra hand-painting, ricami Cornely e applicazioni.",
     highlight: "Pezzi iconici 1/1 pensati per durare e distinguersi.",
   },
   "camicia-jeans": {
-    title: "Camicie Denim Lavorate a Mano",
+    title: "Camicie di Jeans Personalizzate",
     subtitle:
       "Camicie in denim reinterpretate con schizzi di colore, toppe, cuciture a contrasto e dettagli destroyed.",
     highlight: "Perfette da indossare aperte o come strato protagonista.",
   },
   "denim-shorts": {
-    title: "Denim Shorts & Custom Pieces",
+    title: "Shorts di Jeans Custom",
     subtitle:
       "Tagli netti, orli sfilacciati a mano e personalizzazioni grafiche per uno streetwear estivo autentico.",
     highlight: "Costruiti a mano a partire da basi denim selezionate.",
   },
-  cappello: {
-    title: "Cappelli & Bucket Hat Custom",
+  cap: {
+    title: "Cappelli Ricamati e Custom",
     subtitle:
       "Accessori streetwear ricamati, dipinti o ricostruiti in denim e bandana con lavorazione artigianale.",
     highlight: "Il dettaglio finale firmato in laboratorio.",
+  },
+  jackets: {
+    title: "Giacche Custom Fatte a Mano",
+    subtitle:
+      "Pezzi statement con costruzione sartoriale su base denim, ricami, painting e applicazioni eseguite in laboratorio.",
+    highlight: "Giacche pensate per essere riconoscibili al primo sguardo.",
+  },
+  pantaloni: {
+    title: "Pantaloni Custom Fatti a Mano",
+    subtitle:
+      "Pantaloni dal taglio deciso con cuciture a vista, patch e dettagli destroyed lavorati a mano.",
+    highlight: "Pezzi unici o piccole serie, mai produzione industriale.",
   },
 };
 
@@ -77,7 +90,21 @@ export function ShopCatalog({
   categories,
   products,
   totalInStock,
-}: ShopCatalogProps) {
+  initialCategory,
+}: ShopCatalogProps & { initialCategory?: string }) {
+  // Category landing pages (/shop/<categoria>/) pass the category from the
+  // server so the filtered list and its H1 are in the initial HTML.
+  if (initialCategory) {
+    return (
+      <ShopCatalogContent
+        categories={categories}
+        products={products}
+        selectedCategory={initialCategory}
+        totalInStock={totalInStock}
+      />
+    );
+  }
+
   return (
     <Suspense
       fallback={
@@ -216,6 +243,7 @@ function ShopCatalogContent({
   const editorial = selectedCategory
     ? CATEGORY_EDITORIAL[selectedCategory]
     : undefined;
+  const categorySeo = getCategorySeo(selectedCategory);
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) || onlyInStock || selectedSize !== "ALL";
@@ -412,7 +440,7 @@ function ShopCatalogContent({
             return (
               <Link
                 key={category.slug}
-                href={`/shop?cat=${category.slug}`}
+                href={categoryHref(category.slug)}
                 onClick={() => setSelectedSize("ALL")}
                 className={`inline-flex items-center gap-2 border px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.18em] transition ${
                   isActive
@@ -656,7 +684,7 @@ function ShopCatalogContent({
                       <>
                         <Image
                           src={thumb.url}
-                          alt={thumb.alt || `${product.name} — Jacopo Peca`}
+                          alt={buildProductImageAlt(product, thumb.alt)}
                           fill
                           className={`object-cover transition duration-700 ${
                             secondaryImage && loadedPreviews.has(product.id)
@@ -668,10 +696,11 @@ function ShopCatalogContent({
                         {secondaryImage && previewedProducts.has(product.id) && (
                           <Image
                             src={secondaryImage.url}
-                            alt={
-                              secondaryImage.alt ||
-                              `${product.name} dettaglio — Jacopo Peca`
-                            }
+                            alt={buildProductImageAlt(
+                              product,
+                              secondaryImage.alt,
+                              "dettaglio lavorazione",
+                            )}
                             fill
                             onLoad={() => setLoadedPreviews((current) => new Set([...current, product.id]))}
                             className="object-cover opacity-0 transition duration-700 group-hover:scale-105 group-hover:opacity-100"
@@ -769,6 +798,37 @@ function ShopCatalogContent({
               <p className="text-xs font-bold uppercase tracking-[0.35em] text-red-500">
                 Autenticità &amp; Metodo // Jacopo Peca
               </p>
+              {categorySeo ? (
+                <>
+                  <h2 className="mt-3 font-display text-4xl text-white sm:text-5xl">
+                    {categorySeo.contentTitle}
+                  </h2>
+                  {categorySeo.content.map((paragraph, index) => (
+                    <p
+                      key={index}
+                      className={`${index === 0 ? "mt-4" : "mt-3"} text-sm leading-7 text-white/80 sm:text-base sm:leading-8`}
+                    >
+                      {paragraph}
+                    </p>
+                  ))}
+                  {categorySeo.craftTags.length > 0 && (
+                    <ul
+                      aria-label="Tecniche artigianali"
+                      className="mt-5 flex flex-wrap gap-2"
+                    >
+                      {categorySeo.craftTags.map((tag) => (
+                        <li
+                          key={tag}
+                          className="border border-white/15 bg-white/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/85"
+                        >
+                          {tag}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              ) : (
+              <>
               <h2 className="mt-3 font-display text-4xl text-white sm:text-5xl">
                 Denim Streetwear Artigianale Fatto a Mano in Italia
               </h2>
@@ -803,6 +863,8 @@ function ShopCatalogContent({
                 e pagamenti protetti tramite{" "}
                 <strong className="font-semibold text-white">Stripe</strong>.
               </p>
+              </>
+              )}
             </div>
 
             <div className="border border-white/15 bg-[#121212] p-6 sm:p-8 lg:col-span-5">
@@ -837,6 +899,63 @@ function ShopCatalogContent({
               </div>
             </div>
           </div>
+
+          {categorySeo && categorySeo.faqs.length > 0 && (
+            <div className="mt-12 border-t border-white/10 pt-10">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">
+                Domande frequenti // {activeCategoryObj?.name ?? categorySeo.h1}
+              </p>
+              <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
+                {categorySeo.faqs.map((faq) => (
+                  <details key={faq.question} className="group py-4">
+                    <summary className="cursor-pointer list-none text-sm font-semibold text-white marker:content-none sm:text-base">
+                      <span className="flex items-center justify-between gap-4">
+                        {faq.question}
+                        <span
+                          className="text-red-500 transition group-open:rotate-45"
+                          aria-hidden="true"
+                        >
+                          +
+                        </span>
+                      </span>
+                    </summary>
+                    <p className="mt-2.5 max-w-3xl text-sm leading-7 text-white/75">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <nav
+            aria-label="Esplora le collezioni artigianali"
+            className="mt-10 border-t border-white/10 pt-8"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">
+              Esplora per lavorazione e categoria
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {categories.map((cat) => {
+                const seo = getCategorySeo(cat.slug);
+                const isCurrentCat = cat.slug === selectedCategory;
+                return (
+                  <Link
+                    key={cat.slug}
+                    href={categoryHref(cat.slug)}
+                    aria-current={isCurrentCat ? "page" : undefined}
+                    className={`border px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                      isCurrentCat
+                        ? "border-red-600 bg-red-600/15 text-white"
+                        : "border-white/15 text-white/75 hover:border-white/40 hover:text-white"
+                    }`}
+                  >
+                    {seo?.h1 ?? cat.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
         </section>
       </div>
     </main>

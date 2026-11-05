@@ -1,10 +1,10 @@
 export const storeCategories = [
-  { name: "Felpe", slug: "sweatshirt" },
-  { name: "T-Shirt", slug: "t-shirt" },
   { name: "Jeans", slug: "jeans-2" },
   { name: "Giacche Denim", slug: "giacca-denim" },
+  { name: "Felpe", slug: "sweatshirt" },
+  { name: "T-Shirt", slug: "t-shirt" },
   { name: "Camicie Denim", slug: "camicia-jeans" },
-  { name: "Denim Customize", slug: "denim-shorts" },
+  { name: "Denim Shorts", slug: "denim-shorts" },
 ];
 
 export const socials = [
@@ -82,32 +82,90 @@ export const aboutGallery = [
 
 export const customizeSteps = [
   {
-    title: "Brief iniziale",
+    index: "01",
+    title: "Brief",
     description:
-      "Raccogliamo idea, capo base, fit desiderato e riferimenti visuali. Il punto di partenza è sempre il tuo immaginario.",
+      "Capo base, fit, riferimenti e uso del pezzo. Se hai già il denim, mandalo in foto. Se no, lo scegliamo in laboratorio.",
   },
   {
-    title: "Proposta creativa",
+    index: "02",
+    title: "Proposta",
     description:
-      "Definisco interventi, materiali, palette e tempi. Ogni custom nasce per restare unica, non per essere replicata in serie.",
+      "Interventi, materiali e tempi si fissano prima di tagliare. Nessun listino automatico: il prezzo segue il lavoro vero.",
   },
   {
-    title: "Lavorazione in laboratorio",
+    index: "03",
+    title: "Laboratorio",
     description:
-      "Taglio, cuciture, painting, applicazioni e rifiniture vengono eseguiti a mano nel laboratorio di Montesilvano.",
+      "Strappi, cuciture, ricamo, painting e applicazioni si fanno a mano a Montesilvano. Il pezzo non entra in una serie.",
   },
   {
-    title: "Consegna e follow-up",
+    index: "04",
+    title: "Consegna",
     description:
-      "Una volta completato il pezzo ricevi aggiornamenti, immagini finali e istruzioni di cura dedicate.",
+      "Foto finali, istruzioni di cura e, se serve, un ritocco dopo la prima prova. I custom non si rendono, salvo difetti di lavorazione.",
+  },
+];
+
+export const customizePaths = [
+  {
+    title: "Porti il tuo capo",
+    text: "Jeans, giacca, camicia o felpa già tuoi. Guardiamo tessuto, usura e cosa si può ancora aprire senza rovinare la base.",
+  },
+  {
+    title: "Lo scegliamo noi",
+    text: "Base selezionata in laboratorio, poi lavorata sul tuo fit e sulla tua idea. Utile se parti da zero o cerchi un pezzo per uno shooting.",
   },
 ];
 
 export const customizeOptions = [
-  "Ricami, patchwork, painting e interventi grafici",
-  "Upcycling su jeans, giacche, camicie e felpe",
-  "Vestibilità corrette o ricostruite su richiesta",
-  "Capsule, sample unici e pezzi per shooting o live",
+  {
+    title: "Ricamo e patchwork",
+    text: "Cornely, toppe, inserti e cuciture a vista. Il disegno resta sul capo, non su una stampa.",
+    image: "/images/atelier/atelier-embroidery.jpg",
+    alt: "Ricamo Cornely su denim nel laboratorio Jacopo Peca",
+  },
+  {
+    title: "Painting e tattoo",
+    text: "Aerografo, interventi grafici e segni a mano. Ogni passaggio è sul singolo pezzo.",
+    image: "/images/atelier/atelier-airbrush.jpg",
+    alt: "Aerografo su un capo custom nel laboratorio",
+  },
+  {
+    title: "Taglio e fit",
+    text: "Strappi, ricostruzione della vestibilità, orli e cuciture rifatte dove il denim lo permette.",
+    image: "/images/atelier/atelier-singer.jpg",
+    alt: "Cucitura a mano su denim strappato",
+  },
+  {
+    title: "Pezzo finito",
+    text: "Giacche, jeans e sample unici per uso quotidiano, live o shooting. Tiratura corta, spesso 1/1.",
+    image: "/images/atelier/atelier-jacket-jp.jpg",
+    alt: "Giacca denim finita a mano da Jacopo Peca",
+  },
+];
+
+export const customizeFaqs = [
+  {
+    question: "Quanto costa una custom?",
+    answer:
+      "Non c'è un prezzo fisso. Dopo il brief ti dico interventi e cifra, e si parte solo se confermi.",
+  },
+  {
+    question: "Quanto tempo ci vuole?",
+    answer:
+      "Dipende dal capo e dalla coda di laboratorio. I tempi si confermano prima di iniziare, non a lavoro avviato.",
+  },
+  {
+    question: "Posso spedire un jeans che ho già?",
+    answer:
+      "Sì. Prima mandami le foto del fronte, del retro e dei dettagli. Se la base regge, ti dico come spedirla.",
+  },
+  {
+    question: "Si può rendere un capo custom?",
+    answer:
+      "No, salvo difetti di lavorazione. È un pezzo fatto sul tuo caso, non un articolo di serie.",
+  },
 ];
 
 export const shippingPolicy = [

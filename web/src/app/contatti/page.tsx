@@ -11,20 +11,21 @@ import {
 } from "lucide-react";
 
 import Image from "@/components/StoreImage";
+import ConsentGoogleMap from "@/components/ConsentGoogleMap";
 import ContactQuickForm from "@/components/ContactQuickForm";
 import { contactInfo, socials } from "@/lib/editorial-data";
 import { absoluteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Contatti & Atelier — Parla Direttamente con Jacopo Peca",
+  title: "Contatti e Laboratorio a Montesilvano (Pescara)",
   description:
-    "Contatta direttamente Jacopo Peca nel laboratorio di Montesilvano (PE): WhatsApp diretto, email, telefono, indirizzo dell'atelier per capi streetwear, denim custom su misura e assistenza ordini.",
+    "Contatta direttamente Jacopo Peca nel laboratorio di Via Benedetto Croce 18 a Montesilvano (PE): WhatsApp, telefono 085 2934313 ed email per ordini, taglie e jeans o giacche custom.",
   keywords: [
     "contatti Jacopo Peca",
     "laboratorio Jacopo Peca Montesilvano",
-    "denim custom su misura contatti",
-    "atelier streetwear Pescara Montesilvano",
-    "tattoo clothing Jacopo Peca",
+    "atelier streetwear Pescara",
+    "personalizzare jeans Pescara",
+    "tattoo clothing Montesilvano",
   ],
   alternates: {
     canonical: "/contatti",
@@ -86,6 +87,27 @@ export default function ContattiPage() {
           postalCode: "65016",
           addressCountry: "IT",
         },
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: 42.5142,
+          longitude: 14.1486,
+        },
+        hasMap: googleMapsSearchUrl,
+        openingHoursSpecification: [
+          {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+            ],
+            opens: "09:30",
+            closes: "19:30",
+          },
+        ],
         sameAs: socials.map((s) => s.href),
       },
       {
@@ -568,15 +590,12 @@ export default function ContattiPage() {
             </div>
 
             <div className="lg:col-span-7">
-              <div className="relative aspect-16/10 w-full overflow-hidden border border-white/15 bg-[#141414]">
-                <iframe
-                  title="Mappa Laboratorio Jacopo Peca — Via B. Croce 18, Montesilvano (PE)"
-                  src="https://maps.google.com/maps?q=Via%20Benedetto%20Croce%2018,%2065016%20Montesilvano%20PE&t=&z=16&ie=UTF8&iwloc=&output=embed"
-                  className="h-full w-full border-0 grayscale contrast-125 invert-[0.9] hue-rotate-180"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
+              <ConsentGoogleMap
+                title="Mappa Laboratorio Jacopo Peca — Via B. Croce 18, Montesilvano (PE)"
+                embedUrl="https://maps.google.com/maps?q=Via%20Benedetto%20Croce%2018,%2065016%20Montesilvano%20PE&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                externalMapsUrl={googleMapsSearchUrl}
+                address={contactInfo.address}
+              />
             </div>
           </div>
         </div>

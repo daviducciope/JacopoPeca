@@ -98,6 +98,38 @@ export default async function AdminPage() {
           </div>
         </section>
 
+        {data.unfulfilledCount > 0 && (
+          <section className="border border-amber-400/30 bg-amber-400/10 px-5 py-4 text-sm text-amber-50">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="font-semibold">
+                {data.unfulfilledCount === 1
+                  ? "1 ordine pagato da spedire"
+                  : `${data.unfulfilledCount} ordini pagati da spedire`}
+              </p>
+              <Link href="/admin/orders" className="text-xs font-bold uppercase tracking-wider text-white underline">
+                Apri gli ordini
+              </Link>
+            </div>
+            <ul className="mt-3 space-y-1.5 text-amber-100/90">
+              {data.unfulfilledOrders.map((order) => (
+                <li key={order.id}>
+                  <Link href="/admin/orders" className="font-semibold text-white hover:underline">
+                    {order.orderNumber}
+                  </Link>
+                  {" · "}
+                  {order.totalFormatted}
+                  {" · "}
+                  {new Date(order.createdAt).toLocaleString("it-IT", {
+                    timeZone: "Europe/Rome",
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {(data.usingFallbackData || !data.databaseEnabled) && (
           <section className="border border-amber-400/25 bg-amber-400/10 px-5 py-4 text-sm text-amber-100">
             {!data.databaseEnabled
@@ -197,23 +229,25 @@ export default async function AdminPage() {
           {/* Colonna destra: Prodotti Esauriti + Top Venduti */}
           <div className="flex flex-col gap-6">
             <Panel
-              title="Prodotti Esauriti (0 pz)"
-              badge={data.outOfStock > 0 ? `${data.outOfStock} da ricaricare` : "Tutto ok"}
-              badgeColor={data.outOfStock > 0 ? "red" : "emerald"}
+              title="Taglie esaurite (0 pz)"
+              badge={data.soldOutSizes.length > 0 ? `${data.soldOutSizes.length} da ricaricare` : "Tutto ok"}
+              badgeColor={data.soldOutSizes.length > 0 ? "red" : "emerald"}
             >
-              {data.lowStock.length > 0 ? (
+              {data.soldOutSizes.length > 0 ? (
                 <ul className="space-y-2.5 text-sm">
-                  {data.lowStock.map((item) => (
+                  {data.soldOutSizes.map((item) => (
                     <li
                       key={item.id}
                       className="flex items-center justify-between gap-3 border border-red-400/20 bg-red-500/8 px-3.5 py-2.5"
                     >
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-white">{item.name}</p>
-                        <p className="text-xs text-white/45">{item.category}</p>
+                        <p className="text-xs text-white/45">
+                          Taglia {item.size} · {item.category}
+                        </p>
                       </div>
                       <Link
-                        href={`/admin/products?edit=${item.id}`}
+                        href={`/admin/products?edit=${item.productId}`}
                         className="shrink-0 border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white hover:text-black"
                       >
                         Ricarica →
@@ -223,7 +257,7 @@ export default async function AdminPage() {
                 </ul>
               ) : (
                 <p className="text-sm text-emerald-300/80">
-                  ✓ Tutti i prodotti attivi hanno stock disponibile!
+                  ✓ Tutte le taglie attive hanno stock disponibile.
                 </p>
               )}
             </Panel>

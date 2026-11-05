@@ -1,12 +1,52 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Image from "@/components/StoreImage";
 import { ArrowUpRight, ArrowDown } from "lucide-react";
 
 import HeroVideo from "@/components/HeroVideo";
 
 import { HomeDrop } from "@/components/HomeDrop";
+import { categoryHref } from "@/lib/category-seo";
 import { getFeaturedStorefrontProducts, getStorefrontCategories } from "@/lib/product-data";
 import { ensureDynamicRendering } from "@/lib/render-mode";
+import { brandDescription, defaultOgImage } from "@/lib/seo";
+
+const homeTitle = "Jacopo Peca – Jeans e Giacche di Jeans Personalizzate Fatte a Mano";
+
+export const metadata: Metadata = {
+  title: { absolute: homeTitle },
+  description: brandDescription,
+  keywords: [
+    "Jacopo Peca",
+    "jeans personalizzati",
+    "giacca di jeans personalizzata",
+    "giacca jeans dipinta a mano",
+    "denim custom",
+    "streetwear artigianale made in Italy",
+    "tattoo clothing",
+    "abbigliamento fatto a mano Pescara",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    url: "/",
+    title: homeTitle,
+    description: brandDescription,
+    images: [
+      {
+        url: defaultOgImage,
+        alt: "Jacopo Peca al lavoro nel laboratorio di denim personalizzato a Montesilvano",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: homeTitle,
+    description: brandDescription,
+    images: [defaultOgImage],
+  },
+};
 
 export default async function HomePage() {
   await ensureDynamicRendering();
@@ -26,6 +66,9 @@ export default async function HomePage() {
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 py-16 sm:px-6 lg:px-10 lg:py-24">
           <h1 className="home-title font-display text-white">
+            <small className="mb-4 block font-sans text-xs font-semibold uppercase leading-normal tracking-[0.3em] text-white/85 sm:text-sm">
+              Denim personalizzato fatto a mano · Montesilvano (PE)
+            </small>
             MADE IN<br />MY <span>STORE</span>
           </h1>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-white/90 md:text-lg">
@@ -34,11 +77,15 @@ export default async function HomePage() {
               fatti a mano nel mio store
             </strong>
             , garantendo <em className="italic text-white">qualità e autenticità</em>.
-            Lavoriamo con passione ogni giorno per offrire capi{" "}
+            Jeans, giacche di jeans e felpe{" "}
+            <strong className="font-semibold text-white">
+              personalizzate una per una
+            </strong>
+            : capi{" "}
             <strong className="font-semibold text-white">
               streetwear unici
             </strong>
-            .
+            , made in Italy.
           </p>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <Link
@@ -67,7 +114,7 @@ export default async function HomePage() {
             {categories.map((cat) => (
               <Link
                 key={cat.slug}
-                href={`/shop?cat=${cat.slug}`}
+                href={categoryHref(cat.slug)}
                 className="home-category group relative bg-[#111] p-5 transition sm:p-7"
               >
                 <p className="pr-5 font-display text-3xl text-white md:text-4xl">

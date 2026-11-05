@@ -1,212 +1,258 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import CartIcon from "./CartIcon";
 import { contactInfo, socials, storeCategories } from "@/lib/editorial-data";
+import { categoryHref } from "@/lib/category-seo";
+
+const shopCategories = storeCategories;
+
+const desktopLinks = [
+  { href: "/about", label: "About" },
+  { href: "/denim-customize", label: "Customize" },
+  { href: "/contatti", label: "Contatti" },
+];
+
+function normalizePath(path: string) {
+  if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
+  return path;
+}
+
+function isCurrent(pathname: string, href: string) {
+  const current = normalizePath(pathname);
+  const target = normalizePath(href);
+  return current === target || current.startsWith(`${target}/`);
+}
 
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [storeOpen, setStoreOpen] = useState(false);
+  const pathname = usePathname();
+  const [openOnPath, setOpenOnPath] = useState<string | null>(null);
+  const mobileOpen = openOnPath === pathname;
+
+  function openMenu() {
+    setOpenOnPath(pathname);
+  }
+
+  function closeMenu() {
+    setOpenOnPath(null);
+  }
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenOnPath(null);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen]);
 
   return (
     <>
-      {/* ── Topbar ── */}
-      <div className="bg-[#e01010] py-1.5 text-[12px] tracking-[1.5px] uppercase font-medium text-center">
-        <div className="mx-auto max-w-[1280px] px-5 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            {socials.map((s) => (
+      <div className="bg-[#e01010] text-white">
+        <div className="relative mx-auto flex h-9 max-w-[1280px] items-center justify-between px-4 sm:px-5">
+          <div className="hidden items-center gap-4 lg:flex">
+            {socials.map((social) => (
               <a
-                key={s.name}
-                href={s.href}
+                key={social.name}
+                href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm opacity-90 hover:opacity-100 transition-opacity"
+                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/80 transition hover:text-white"
               >
-                {s.name}
+                {social.name}
               </a>
             ))}
           </div>
-          <span className="tracking-[2px] hidden sm:block">✦ CONSEGNA GRATUITA SOPRA €100 ✦</span>
+          <p className="pointer-events-none absolute inset-x-14 truncate text-center text-[11px] font-semibold uppercase tracking-[0.16em] sm:text-xs sm:tracking-[0.2em]">
+            Consegna gratuita sopra €100
+          </p>
           <a
             href={contactInfo.whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:flex items-center gap-1.5 text-[12px]"
+            className="ml-auto hidden text-[11px] font-semibold uppercase tracking-[0.16em] text-white lg:inline"
           >
             WhatsApp
           </a>
         </div>
       </div>
 
-      {/* ── Full-screen mobile menu ── */}
-      {mobileOpen && (
-        <div className="fixed inset-0 bg-[#0a0a0a] z-[999] pt-[100px] px-[30px] pb-10 flex flex-col overflow-y-auto">
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="absolute top-6 right-6 bg-transparent text-[#f8f8f8] text-[28px] leading-none cursor-pointer border-none"
-            aria-label="Chiudi menu"
-          >
-            ✕
-          </button>
-
-          <nav className="flex flex-col gap-1">
-            <Link
-              href="/"
-              onClick={() => setMobileOpen(false)}
-              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
-            >
-              Home
-            </Link>
-            <Link
-              href="/shop"
-              onClick={() => setMobileOpen(false)}
-              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
-            >
-              Store
-            </Link>
-            <div className="flex flex-col pl-5">
-              {storeCategories.map((cat) => (
-                <Link
-                  key={cat.slug}
-                  href={`/shop?cat=${cat.slug}`}
-                  onClick={() => setMobileOpen(false)}
-                  className="block py-3.5 text-[14px] tracking-[1.2px] uppercase border-b border-white/5 text-[#888888] hover:text-[#f8f8f8] transition-colors"
-                >
-                  {cat.name}
-                </Link>
-              ))}
-            </div>
-            <Link
-              href="/about"
-              onClick={() => setMobileOpen(false)}
-              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
-            >
-              About
-            </Link>
-            <Link
-              href="/denim-customize"
-              onClick={() => setMobileOpen(false)}
-              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
-            >
-              Customize
-            </Link>
-            <Link
-              href="/contatti"
-              onClick={() => setMobileOpen(false)}
-              className="block py-3.5 text-[20px] font-semibold tracking-[2px] uppercase border-b border-[#2a2a2a] text-[#f8f8f8] hover:text-[#e01010] transition-colors"
-            >
-              Contatti
-            </Link>
-          </nav>
-        </div>
-      )}
-
-      {/* ── Sticky header ── */}
-      <header className="sticky top-0 z-[1000] bg-[#0a0a0a] border-b border-[#2a2a2a]">
-        <div className="mx-auto max-w-[1280px] px-5 h-[72px] flex items-center justify-between gap-6">
-
-          {/* Logo */}
+      <header className="sticky top-0 z-[1000] border-b border-white/10 bg-[#0a0a0a]/95 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 px-4 sm:h-[72px] sm:px-5">
           <Link
             href="/"
-            className="font-display text-[32px] tracking-[4px] text-[#f8f8f8] uppercase flex-shrink-0 leading-none"
+            className="font-display text-[28px] leading-none tracking-[2px] text-white uppercase sm:text-[34px] sm:tracking-[3px]"
           >
-            JACOPO <span className="text-[#e01010]">PECA</span>
+            Jacopo <span className="text-[#e01010]">Peca</span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1.5">
-            <Link
-              href="/"
-              className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
-            >
-              Home
-            </Link>
-
-            {/* Store + dropdown */}
-            <div
-              className="relative"
-              onMouseEnter={() => setStoreOpen(true)}
-              onMouseLeave={() => setStoreOpen(false)}
-            >
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Principale">
+            <div className="group relative">
               <Link
                 href="/shop"
-                className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
+                aria-current={isCurrent(pathname, "/shop") ? "page" : undefined}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold tracking-[0.16em] uppercase transition ${
+                  isCurrent(pathname, "/shop") ? "text-white" : "text-white/70 hover:text-white"
+                }`}
               >
                 Store
+                <span className="text-[9px] text-white/50 transition group-hover:text-white" aria-hidden="true">
+                  ▾
+                </span>
               </Link>
-              {storeOpen && (
-                <div className="absolute top-full left-0 z-100 pt-3">
-                  <div
-                    className="min-w-50 bg-[#161616] border border-[#2a2a2a] py-2"
-                    style={{ borderTop: "2px solid #e01010" }}
+              <div className="pointer-events-none absolute top-full left-0 z-50 w-56 pt-2 opacity-0 transition group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+                <div className="border border-white/10 border-t-2 border-t-[#e01010] bg-[#121212] py-2 shadow-2xl">
+                  <Link
+                    href="/shop"
+                    className="block px-4 py-2.5 text-[12px] font-semibold tracking-[0.14em] text-white uppercase transition hover:bg-white/5"
                   >
-                    {storeCategories.map((cat) => (
-                      <Link
-                        key={cat.slug}
-                        href={`/shop?cat=${cat.slug}`}
-                        className="block px-5 py-2.5 text-[12px] tracking-[1.2px] uppercase text-[#888888] hover:text-[#f8f8f8] hover:bg-white/4 hover:pl-6.5 transition-all"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))}
-                  </div>
+                    Tutti i pezzi
+                  </Link>
+                  {shopCategories.map((category) => (
+                    <Link
+                      key={category.slug}
+                      href={categoryHref(category.slug)}
+                      className="block px-4 py-2.5 text-[12px] tracking-[0.12em] text-white/65 uppercase transition hover:bg-white/5 hover:text-white"
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                  <Link
+                    href="/denim-customize"
+                    className="mt-1 block border-t border-white/10 px-4 py-2.5 text-[12px] font-semibold tracking-[0.12em] text-[#e01010] uppercase transition hover:bg-white/5 hover:text-white"
+                  >
+                    Customizza un capo
+                  </Link>
                 </div>
-              )}
+              </div>
             </div>
 
-            <Link
-              href="/about"
-              className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
-            >
-              About
-            </Link>
-
-            <Link
-              href="/denim-customize"
-              className="block px-3.5 py-[7px] text-[12px] font-semibold tracking-[1.8px] uppercase text-[#d95f00] border border-[#d95f00] rounded-sm hover:bg-[#d95f00] hover:text-white transition-all"
-            >
-              Customize
-            </Link>
-
-            <Link
-              href="/contatti"
-              className="block px-3 py-2 text-[12px] font-semibold tracking-[1.8px] uppercase text-[#cccccc] hover:text-[#f8f8f8] transition-colors rounded-sm"
-            >
-              Contatti
-            </Link>
+            {desktopLinks.map((link) => {
+              const active = isCurrent(pathname, link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`px-3 py-2 text-[12px] font-semibold tracking-[0.16em] uppercase transition ${
+                    link.href === "/denim-customize"
+                      ? active
+                        ? "text-[#e01010]"
+                        : "text-[#e01010]/80 hover:text-[#e01010]"
+                      : active
+                        ? "text-white"
+                        : "text-white/70 hover:text-white"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* Actions: cart + hamburger */}
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <CartIcon />
+          <div className="flex items-center gap-1">
+            <div className="p-2">
+              <CartIcon />
+            </div>
             <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden flex flex-col gap-[5px] p-1 bg-transparent border-none cursor-pointer"
-              aria-label="Menu"
+              type="button"
+              onClick={openMenu}
+              className="inline-flex h-11 w-11 items-center justify-center lg:hidden"
+              aria-label="Apri menu"
+              aria-expanded={mobileOpen}
             >
-              <span
-                className={`block w-6 bg-[#f8f8f8] transition-all duration-300 ${
-                  mobileOpen ? "translate-y-[7px] rotate-45 h-px" : "h-px"
-                }`}
-                style={{ height: "2px" }}
-              />
-              <span
-                className={`block w-6 bg-[#f8f8f8] transition-all duration-300 ${
-                  mobileOpen ? "opacity-0" : ""
-                }`}
-                style={{ height: "2px" }}
-              />
-              <span
-                className={`block w-6 bg-[#f8f8f8] transition-all duration-300 ${
-                  mobileOpen ? "-translate-y-[7px] -rotate-45" : ""
-                }`}
-                style={{ height: "2px" }}
-              />
+              <span className="flex w-5 flex-col gap-1.5" aria-hidden="true">
+                <span className="h-0.5 w-full bg-white" />
+                <span className="h-0.5 w-full bg-white" />
+                <span className="h-0.5 w-4 bg-white" />
+              </span>
             </button>
           </div>
         </div>
       </header>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-[1100] flex flex-col bg-[#0a0a0a] text-white lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
+            <Link href="/" className="font-display text-[28px] leading-none tracking-[2px] uppercase" onClick={closeMenu}>
+              Jacopo <span className="text-[#e01010]">Peca</span>
+            </Link>
+            <button
+              type="button"
+              onClick={closeMenu}
+              className="inline-flex h-11 w-11 items-center justify-center text-2xl"
+              aria-label="Chiudi menu"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-6">
+            <nav className="flex flex-col" aria-label="Mobile">
+              {[
+                { href: "/", label: "Home" },
+                { href: "/shop", label: "Store" },
+                { href: "/about", label: "About" },
+                { href: "/denim-customize", label: "Customize" },
+                { href: "/contatti", label: "Contatti" },
+              ].map((link) => {
+                const active = isCurrent(pathname, link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMenu}
+                    aria-current={active ? "page" : undefined}
+                    className={`border-b border-white/10 py-4 text-2xl font-semibold tracking-[0.08em] uppercase ${
+                      active ? "text-[#e01010]" : "text-white"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <p className="mt-8 text-[11px] font-semibold tracking-[0.2em] text-white/45 uppercase">Categorie</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {shopCategories.map((category) => (
+                <Link
+                  key={category.slug}
+                  href={categoryHref(category.slug)}
+                  onClick={closeMenu}
+                  className="border border-white/12 px-3 py-3 text-xs font-semibold tracking-[0.12em] text-white/80 uppercase"
+                >
+                  {category.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 border-t border-white/10 px-5 py-4">
+            <Link href="/cart" onClick={closeMenu} className="inline-flex min-h-12 items-center justify-center border border-white/20 text-xs font-bold tracking-[0.16em] uppercase">
+              Carrello
+            </Link>
+            <a
+              href={contactInfo.whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="home-primary inline-flex min-h-12 items-center justify-center text-xs font-bold tracking-[0.16em] uppercase"
+            >
+              WhatsApp
+            </a>
+          </div>
+        </div>
+      )}
     </>
   );
 }

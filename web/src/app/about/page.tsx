@@ -4,16 +4,96 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 import { aboutGallery, aboutHighlights, aboutStats, contactInfo, socials } from "@/lib/editorial-data";
+import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo";
+
+const aboutTitle = "Chi Sono – Laboratorio di Denim Artigianale a Montesilvano";
+const aboutDescription =
+  "Jacopo Peca, nato a Pescara nel 1984: vent'anni nel mondo denim e oggi nel laboratorio di Montesilvano (PE) dove cuce, dipinge e ricama a mano jeans, giacche e capi tattoo clothing.";
 
 export const metadata: Metadata = {
-  title: "About - Jacopo Peca",
-  description:
-    "Jacopo Peca, nato a Pescara nel 1984. Denim e streetwear fatti a mano nel laboratorio di Montesilvano: strappi, cuciture, tattoo clothing.",
+  title: aboutTitle,
+  description: aboutDescription,
+  keywords: [
+    "Jacopo Peca",
+    "chi è Jacopo Peca",
+    "laboratorio denim Montesilvano",
+    "artigiano denim Pescara",
+    "tattoo clothing",
+    "Identity Denim JP",
+    "Il Contrario UED Pescara",
+  ],
+  alternates: {
+    canonical: "/about",
+  },
+  openGraph: {
+    type: "profile",
+    url: "/about",
+    title: `${aboutTitle} | Jacopo Peca`,
+    description: aboutDescription,
+    images: [
+      {
+        url: absoluteUrl(aboutGallery[0].src),
+        alt: aboutGallery[0].alt,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${aboutTitle} | Jacopo Peca`,
+    description: aboutDescription,
+    images: [absoluteUrl(aboutGallery[0].src)],
+  },
 };
 
 export default function AboutPage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": absoluteUrl("/about#aboutpage"),
+        url: absoluteUrl("/about"),
+        name: `${aboutTitle} | Jacopo Peca`,
+        description: aboutDescription,
+        inLanguage: "it-IT",
+        isPartOf: { "@id": absoluteUrl("/#website") },
+        mainEntity: { "@id": absoluteUrl("/about#jacopo-peca") },
+      },
+      {
+        "@type": "Person",
+        "@id": absoluteUrl("/about#jacopo-peca"),
+        name: "Jacopo Peca",
+        birthDate: "1984",
+        birthPlace: {
+          "@type": "Place",
+          name: "Pescara, Italia",
+        },
+        jobTitle: "Artigiano e designer di denim streetwear",
+        url: absoluteUrl("/about"),
+        image: absoluteUrl(aboutGallery[0].src),
+        worksFor: { "@id": absoluteUrl("/#atelier") },
+        sameAs: socials.map((s) => s.href),
+        knowsAbout: [
+          "Denim sartoriale",
+          "Ricamo Cornely",
+          "Tattoo clothing",
+          "Aerografo su tessuto",
+          "Upcycling denim",
+        ],
+      },
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Chi sono", path: "/about" },
+      ]),
+    ],
+  };
+
   return (
     <main className="about-page flex flex-1 flex-col bg-black text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <section className="relative isolate min-h-[calc(100svh-7.5rem)] overflow-hidden border-b border-white/10">
         <Image
           src={aboutGallery[0].src}

@@ -1,90 +1,293 @@
 import type { Metadata } from "next";
+import Image from "@/components/StoreImage";
 import Link from "next/link";
+import { ArrowUpRight, MessageCircle } from "lucide-react";
 
-import { contactInfo, customizeOptions, customizeSteps } from "@/lib/editorial-data";
+import ContactQuickForm from "@/components/ContactQuickForm";
+import { categoryHref } from "@/lib/category-seo";
+import {
+  contactInfo,
+  customizeFaqs,
+  customizeOptions,
+  customizePaths,
+  customizeSteps,
+} from "@/lib/editorial-data";
+import { absoluteUrl, breadcrumbJsonLd } from "@/lib/seo";
+
+const heroImage = "/images/atelier/atelier-embroidery-hero.webp";
+const customizeTitle = "Personalizzazione Jeans e Giacche su Misura – Denim Customize";
+const customizeDescription =
+  "Servizio di personalizzazione jeans e giacche di jeans a mano: ricamo Cornely stile tattoo, dipinti ad aerografo, strappi, patchwork e fit su misura nel laboratorio Jacopo Peca di Montesilvano (PE).";
 
 export const metadata: Metadata = {
-  title: "Denim Customize - Jacopo Peca",
-  description:
-    "Richiedi una customizzazione denim o un pezzo su misura: processo, lavorazioni disponibili e contatti diretti con Jacopo Peca.",
+  title: customizeTitle,
+  description: customizeDescription,
+  keywords: [
+    "personalizzare jeans",
+    "personalizzare giacca di jeans",
+    "jeans su misura",
+    "giacca di jeans personalizzata",
+    "ricamo su jeans",
+    "upcycling denim Italia",
+    "custom denim Jacopo Peca",
+    "denim customize Montesilvano",
+  ],
+  alternates: {
+    canonical: "/denim-customize",
+  },
+  openGraph: {
+    title: `${customizeTitle} | Jacopo Peca`,
+    description: customizeDescription,
+    url: "/denim-customize",
+    type: "website",
+    images: [{ url: absoluteUrl(heroImage), alt: "Ricamo su denim nel laboratorio Jacopo Peca" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${customizeTitle} | Jacopo Peca`,
+    description: customizeDescription,
+    images: [absoluteUrl(heroImage)],
+  },
 };
 
+const related = [
+  { href: categoryHref("jeans-2"), label: "Jeans" },
+  { href: categoryHref("giacca-denim"), label: "Giacche" },
+  { href: categoryHref("camicia-jeans"), label: "Camicie" },
+];
+
 export default function DenimCustomizePage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "@id": absoluteUrl("/denim-customize#service"),
+        name: "Denim Customize – Personalizzazione jeans e giacche a mano",
+        serviceType: "Personalizzazione e customizzazione di jeans, giacche in denim e capi streetwear",
+        description: customizeDescription,
+        url: absoluteUrl("/denim-customize"),
+        image: absoluteUrl(heroImage),
+        areaServed: ["IT", "EU", "FR", "DE", "ES", "AT", "CH", "BE", "NL", "GB"],
+        provider: { "@id": absoluteUrl("/#atelier") },
+        hasOfferCatalog: {
+          "@type": "OfferCatalog",
+          name: "Lavorazioni Denim Customize",
+          itemListElement: customizeOptions.map((opt) => ({
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: opt.title,
+              description: opt.text,
+            },
+          })),
+        },
+      },
+      {
+        "@type": "FAQPage",
+        "@id": absoluteUrl("/denim-customize#faq"),
+        mainEntity: customizeFaqs.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.answer,
+          },
+        })),
+      },
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Denim Customize", path: "/denim-customize" },
+      ]),
+    ],
+  };
+
   return (
     <main className="flex flex-1 flex-col bg-black text-white">
-      <section className="border-b border-white/8 bg-[radial-gradient(circle_at_top_left,#1d3557,transparent_35%),radial-gradient(circle_at_bottom_right,#6b4423,transparent_30%),#090909]">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.45em] text-red-500">Denim Customize</p>
-          <h1 className="mt-4 max-w-4xl font-display text-5xl leading-none md:text-7xl">
-            Customizzazione vera, non un configuratore finto.
-          </h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-white/85 sm:text-lg">
-            Se vuoi un <strong className="font-semibold text-white">intervento su denim</strong>, una{" "}
-            <em className="italic text-white">trasformazione su un capo esistente</em> o un pezzo costruito a
-            partire da un&apos;idea, il processo parte da un{" "}
-            <strong className="font-semibold text-white">confronto diretto</strong>. Ogni custom è definita{" "}
-            <em className="italic text-white">sul singolo caso</em>, senza automatismi e senza preset rigidi.
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
+      <section className="relative isolate min-h-[calc(100svh-7.5rem)] overflow-hidden border-b border-white/10">
+        <Image
+          src={heroImage}
+          alt="Jacopo Peca al lavoro sul ricamo di un capo denim"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[center_30%]"
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/60 to-black/25" />
+        <div className="relative z-10 mx-auto flex min-h-[calc(100svh-7.5rem)] w-full max-w-7xl flex-col justify-end px-5 pt-16 pb-10 sm:px-6 lg:px-10 lg:pb-16">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-red-500">
+            Laboratorio · Montesilvano
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a href={contactInfo.whatsappHref} target="_blank" rel="noopener noreferrer" className="border-2 border-white bg-white px-6 py-3 text-sm font-bold uppercase tracking-[0.2em] text-black transition hover:bg-transparent hover:text-white">
-              Scrivi su WhatsApp
+          <h1 className="mt-3 max-w-5xl font-display text-[clamp(3.4rem,14vw,7.5rem)] leading-[0.82] text-white">
+            Il tuo denim,
+            <br />
+            lavorato a mano.
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-white/90 sm:text-lg">
+            Non è un configuratore. Porti un capo, o ne scegliamo uno, e lo apriamo insieme: ricamo, painting, fit, pezzi 1/1.
+          </p>
+          <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row">
+            <a
+              href="#richiesta"
+              className="home-primary inline-flex min-h-12 items-center justify-center gap-3 px-6 text-sm font-semibold uppercase tracking-widest"
+            >
+              Racconta il capo <ArrowUpRight size={18} aria-hidden="true" />
             </a>
-            <a href={`mailto:${contactInfo.email}`} className="border border-white/25 px-6 py-3 text-sm font-bold uppercase tracking-[0.2em] text-white/85 transition hover:border-white/50 hover:text-white">
-              Invia una mail
+            <a
+              href={contactInfo.whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-12 items-center justify-center gap-2 border-2 border-white/70 px-6 text-sm font-bold uppercase tracking-widest text-white transition hover:border-white hover:bg-white hover:text-black"
+            >
+              <MessageCircle size={16} aria-hidden="true" />
+              WhatsApp
             </a>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
-        <div className="border border-white/12 bg-[#111] p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-500">Come funziona</p>
-          <div className="mt-6 grid gap-4">
-            {customizeSteps.map((step, index) => (
-              <div key={step.title} className="border border-white/10 bg-black/40 p-5">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">Step 0{index + 1}</p>
-                <h2 className="mt-2 text-2xl font-bold text-white">{step.title}</h2>
-                <p className="mt-3 text-sm leading-7 text-white/80 sm:text-base">{step.description}</p>
-              </div>
+      <section className="border-b border-white/10 bg-[#0b0b0b]">
+        <div className="mx-auto grid max-w-7xl grid-cols-3">
+          {[
+            { value: "1/1", label: "Niente serie" },
+            { value: "Prima", label: "Prezzo e tempi" },
+            { value: "PE", label: "Montesilvano" },
+          ].map((item) => (
+            <div key={item.label} className="border-r border-white/10 px-3 py-6 last:border-r-0 sm:px-6 sm:py-8 lg:px-10">
+              <p className="font-display text-[clamp(2.1rem,8vw,4.5rem)] leading-none">{item.value}</p>
+              <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60 sm:text-xs sm:tracking-[0.22em]">
+                {item.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto grid w-full max-w-7xl gap-8 px-5 py-14 sm:px-6 lg:grid-cols-12 lg:items-center lg:gap-14 lg:px-10 lg:py-24">
+        <div className="relative aspect-4/5 overflow-hidden border border-white/12 bg-[#141414] lg:col-span-5">
+          <Image
+            src="/images/atelier/atelier-jacket-jp.jpg"
+            alt="Giacca denim finita a mano nel laboratorio Jacopo Peca"
+            fill
+            sizes="(max-width: 1024px) 100vw, 42vw"
+            className="object-cover"
+          />
+          <p className="absolute bottom-0 left-0 bg-black/80 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.22em]">
+            Pezzo finito · non un preset
+          </p>
+        </div>
+        <div className="lg:col-span-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-red-500">Due strade</p>
+          <h2 className="mt-3 font-display text-[clamp(2.6rem,8vw,5rem)] leading-[0.88]">
+            Il capo c&apos;è già, oppure lo troviamo.
+          </h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {customizePaths.map((path) => (
+              <article key={path.title} className="border border-white/12 bg-[#111] p-5">
+                <h3 className="text-lg font-semibold">{path.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-white/75">{path.text}</p>
+              </article>
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-6">
-          <div className="border border-white/12 bg-[#111] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-500">Lavorazioni</p>
-            <h2 className="mt-3 text-3xl font-bold text-white">Cosa posso fare sul capo</h2>
-            <ul className="mt-6 space-y-4 text-sm leading-7 text-white/85 sm:text-base">
-              {customizeOptions.map((item) => (
-                <li key={item} className="border border-white/10 bg-black/40 px-4 py-4 font-medium text-white/90">
-                  {item}
-                </li>
+      </section>
+
+      <section className="border-y border-white/10 bg-[#0f0f0f]">
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-10 lg:py-20">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-red-500">Come funziona</p>
+          <h2 className="mt-3 max-w-3xl font-display text-[clamp(2.6rem,8vw,5rem)] leading-[0.88]">
+            Quattro passi, nessun automatismo.
+          </h2>
+          <ol className="mt-8 grid gap-px bg-white/10 sm:grid-cols-2">
+            {customizeSteps.map((step) => (
+              <li key={step.title} className="bg-[#0f0f0f] p-5 sm:p-7">
+                <p className="font-display text-4xl text-red-600">{step.index}</p>
+                <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-white/75">{step.description}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-6 lg:px-10 lg:py-20">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-red-500">Lavorazioni</p>
+        <h2 className="mt-3 font-display text-[clamp(2.6rem,8vw,5rem)] leading-[0.88]">Cosa succede sul capo.</h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {customizeOptions.map((item) => (
+            <article key={item.title} className="group overflow-hidden border border-white/12 bg-[#111]">
+              <div className="relative aspect-16/10">
+                <Image
+                  src={item.image}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 50vw"
+                  className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+              </div>
+              <div className="p-5">
+                <h3 className="text-xl font-semibold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-white/75">{item.text}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="richiesta" className="scroll-mt-24 border-t border-white/10 bg-[#0b0b0b]">
+        <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 py-14 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-10 lg:py-20">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-red-500">Richiesta</p>
+            <h2 className="mt-3 font-display text-[clamp(2.6rem,8vw,4.6rem)] leading-[0.88]">
+              Mandami il pezzo, non un modulo vuoto.
+            </h2>
+            <ul className="mt-6 space-y-3 text-sm leading-7 text-white/80">
+              <li>Foto fronte, retro e un dettaglio del tessuto.</li>
+              <li>Taglia, fit che cerchi e se il capo è già tuo.</li>
+              <li>Un riferimento visivo, anche solo una palette.</li>
+              <li>La data, se c&apos;è uno shooting o una consegna fissa.</li>
+            </ul>
+            <div className="mt-8 flex flex-wrap gap-2">
+              {related.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="border border-white/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/75 transition hover:border-white/40 hover:text-white"
+                >
+                  {item.label} in shop
+                </Link>
               ))}
-            </ul>
-          </div>
-          <div className="border border-white/12 bg-[#111] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-500">Prima di scrivere</p>
-            <ul className="mt-4 space-y-3 text-sm leading-7 text-white/80 sm:text-base">
-              <li>
-                Indica se hai <strong className="font-semibold text-white">già il capo base</strong> o se deve essere{" "}
-                <em className="italic text-white">selezionato in laboratorio</em>.
-              </li>
-              <li>
-                Allega <strong className="font-semibold text-white">foto di riferimento</strong>,{" "}
-                <em className="italic text-white">palette e preferenze di fit</em>.
-              </li>
-              <li>
-                Segnala eventuali <strong className="font-semibold text-white">deadline</strong> per{" "}
-                <em className="italic text-white">shooting, live o consegne speciali</em>.
-              </li>
-            </ul>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/contatti" className="border border-white/15 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white/75 transition hover:border-white/40 hover:text-white">
-                Vai ai contatti
-              </Link>
-              <Link href="/shop?cat=denim-shorts" className="border border-white/15 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white/75 transition hover:border-white/40 hover:text-white">
-                Vedi il catalogo correlate
-              </Link>
             </div>
+          </div>
+          <ContactQuickForm
+            defaultTopic="custom"
+            eyebrow="Diretto in laboratorio"
+            title="Apri la custom"
+            intro="Il messaggio arriva su WhatsApp o email, già pronto. Più foto e dettagli mandi, più la proposta è precisa."
+          />
+        </div>
+      </section>
+
+      <section className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-10 lg:py-20">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-red-500">Prima di partire</p>
+          <h2 className="mt-3 font-display text-[clamp(2.4rem,7vw,4.2rem)] leading-[0.88]">Domande corte.</h2>
+          <div className="mt-8 divide-y divide-white/10 border-y border-white/10">
+            {customizeFaqs.map((item) => (
+              <details key={item.question} className="group py-4">
+                <summary className="cursor-pointer list-none text-base font-semibold marker:content-none sm:text-lg">
+                  <span className="flex items-center justify-between gap-4">
+                    {item.question}
+                    <span className="text-red-500 transition group-open:rotate-45" aria-hidden="true">
+                      +
+                    </span>
+                  </span>
+                </summary>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-white/75">{item.answer}</p>
+              </details>
+            ))}
           </div>
         </div>
       </section>

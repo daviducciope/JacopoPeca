@@ -2,19 +2,23 @@ import type { Metadata } from "next";
 
 import { getStorefrontCategories, getStorefrontProducts } from "@/lib/product-data";
 import { ensureDynamicRendering } from "@/lib/render-mode";
-import { absoluteUrl, productAvailability } from "@/lib/seo";
+import { absoluteUrl, breadcrumbJsonLd, defaultOgImage } from "@/lib/seo";
+import { productListJsonLd } from "@/lib/shop-seo";
 import { ShopCatalog } from "@/components/ShopCatalog";
 
+const shopTitle = "Shop Jeans e Giacche Personalizzate Fatte a Mano";
+const shopDescription =
+  "Shop ufficiale Jacopo Peca: jeans personalizzati, giacche di jeans dipinte a mano, felpe e t-shirt streetwear fatte a mano a Montesilvano (PE). Pezzi unici made in Italy.";
+
 export const metadata: Metadata = {
-  title: "Store Ufficiale — Denim Streetwear Artigianale & Pezzi Unici",
-  description:
-    "Esplora lo Store ufficiale di Jacopo Peca: jeans custom, giacche denim dipinte a mano, felpe, t-shirt e pezzi unici 100% fatti a mano in Italia nel laboratorio di Montesilvano.",
+  title: shopTitle,
+  description: shopDescription,
   keywords: [
-    "Jacopo Peca shop",
-    "denim streetwear artigianale",
-    "jeans custom fatti a mano",
-    "giacche denim dipinte a mano",
-    "streetwear made in Italy",
+    "shop streetwear artigianale",
+    "jeans personalizzati",
+    "giacche di jeans dipinte a mano",
+    "felpe personalizzate",
+    "abbigliamento fatto a mano made in Italy",
     "tattoo clothing",
     "pezzi unici streetwear",
   ],
@@ -22,24 +26,22 @@ export const metadata: Metadata = {
     canonical: "/shop",
   },
   openGraph: {
-    title: "Store Ufficiale Jacopo Peca — Handcrafted Denim Streetwear",
-    description:
-      "Capi streetwear e denim lavorati, cuciti e dipinti a mano in laboratorio. Pezzi unici e serie limitate con spedizione rapida in Italia ed Europa.",
+    title: `${shopTitle} | Jacopo Peca`,
+    description: shopDescription,
     url: "/shop",
     type: "website",
     images: [
       {
-        url: absoluteUrl("/images/atelier/atelier-embroidery.jpg"),
-        alt: "Jacopo Peca — Laboratorio Denim Streetwear Fatto a Mano",
+        url: absoluteUrl(defaultOgImage),
+        alt: "Jacopo Peca — laboratorio di denim streetwear fatto a mano",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Store Ufficiale Jacopo Peca — Handcrafted Denim Streetwear",
-    description:
-      "Jeans, giacche denim, felpe e t-shirt lavorate e dipinte a mano in Italia. Scopri i pezzi unici disponibili.",
-    images: [absoluteUrl("/images/atelier/atelier-embroidery.jpg")],
+    title: `${shopTitle} | Jacopo Peca`,
+    description: shopDescription,
+    images: [absoluteUrl(defaultOgImage)],
   },
 };
 
@@ -60,65 +62,18 @@ export default async function ShopPage() {
         "@type": "CollectionPage",
         "@id": absoluteUrl("/shop#collection"),
         url: absoluteUrl("/shop"),
-        name: "Store Ufficiale Jacopo Peca — Handcrafted Denim Streetwear",
-        description:
-          "Catalogo ufficiale di capi streetwear e denim artigianali fatti a mano in Italia da Jacopo Peca.",
-        isPartOf: {
-          "@type": "WebSite",
-          name: "Jacopo Peca",
-          url: absoluteUrl("/"),
-        },
+        name: shopTitle,
+        description: shopDescription,
+        inLanguage: "it-IT",
+        isPartOf: { "@id": absoluteUrl("/#website") },
+        about: { "@id": absoluteUrl("/#atelier") },
         numberOfItems: products.length,
-        mainEntity: {
-          "@type": "ItemList",
-          numberOfItems: products.length,
-          itemListOrder: "https://schema.org/ItemListUnordered",
-          itemListElement: products.slice(0, 36).map((product, index) => {
-            const thumb =
-              product.images.find((img) => img.isThumbnail) || product.images[0];
-            return {
-              "@type": "ListItem",
-              position: index + 1,
-              url: absoluteUrl(`/product/${product.slug}`),
-              item: {
-                "@type": "Product",
-                name: product.name,
-                url: absoluteUrl(`/product/${product.slug}`),
-                category: product.categoryName,
-                image: thumb ? absoluteUrl(thumb.url) : undefined,
-                brand: {
-                  "@type": "Brand",
-                  name: "Jacopo Peca",
-                },
-                offers: {
-                  "@type": "Offer",
-                  priceCurrency: "EUR",
-                  price: (product.priceCents / 100).toFixed(2),
-                  availability: productAvailability(product),
-                  url: absoluteUrl(`/product/${product.slug}`),
-                },
-              },
-            };
-          }),
-        },
+        mainEntity: productListJsonLd(products),
       },
-      {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          {
-            "@type": "ListItem",
-            position: 1,
-            name: "Home",
-            item: absoluteUrl("/"),
-          },
-          {
-            "@type": "ListItem",
-            position: 2,
-            name: "Store",
-            item: absoluteUrl("/shop"),
-          },
-        ],
-      },
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Shop", path: "/shop" },
+      ]),
     ],
   };
 

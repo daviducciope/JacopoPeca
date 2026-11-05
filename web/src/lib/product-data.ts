@@ -77,6 +77,9 @@ export type AdminDashboardData = {
   categories: number;
   byCat: Array<{ name: string; slug: string; id: string; count: number }>;
   lowStock: Array<{ id: string; slug: string; name: string; category: string; stock: number; thumb: string | null }>;
+  soldOutSizes: Array<{ id: string; productId: string; name: string; size: string; category: string }>;
+  unfulfilledOrders: Array<{ id: string; orderNumber: string; totalFormatted: string; createdAt: string }>;
+  unfulfilledCount: number;
   recentProducts: Array<{
     id: string;
     slug: string;
@@ -411,6 +414,8 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   let ordersTotal = 0;
   let ordersLast30 = 0;
   let aovFormatted = "—";
+  let unfulfilledCount = 0;
+  let unfulfilledOrders: AdminDashboardData["unfulfilledOrders"] = [];
   let topProducts: Array<{ name: string; qty: number }> = inStock
     .slice(0, 5)
     .map((p) => ({ name: p.name, qty: 0 }));
@@ -420,7 +425,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const [orderStats, recentCount, topItems] = await Promise.all([
+      const [orderStats, recentCount, topItems, openCount, openOrders] = await Promise.all([
         prisma.order.aggregate({
           where: { status: { in: ["PAID", "FULFILLED"] } },
           _sum: { totalCents: true },
@@ -436,6 +441,13 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
           orderBy: { _sum: { quantity: "desc" } },
           take: 5,
         }),
+        prisma.order.count({ where: { status: "PAID" } }),
+        prisma.order.findMany({
+          where: { status: "PAID" },
+          orderBy: { createdAt: "desc" },
+          take: 6,
+          select: { id: true, orderNumber: true, totalCents: true, createdAt: true },
+        }),
       ]);
 
       const totalRevenueCents = orderStats._sum.totalCents ?? 0;
@@ -446,6 +458,13 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       ordersTotal = count;
       ordersLast30 = recentCount;
       aovFormatted = count > 0 ? formatPrice(Math.round(avgCents)) : "—";
+      unfulfilledCount = openCount;
+      unfulfilledOrders = openOrders.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        totalFormatted: formatPrice(order.totalCents),
+        createdAt: order.createdAt.toISOString(),
+      }));
       if (topItems.length > 0) {
         topProducts = topItems.map((item) => ({
           name: item.productName,
@@ -474,6 +493,19 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       id: category.id,
       count: category.count,
     })),
+    soldOutSizes: activeProducts.flatMap((product) =>
+      product.sizes
+        .filter((size) => size.stock <= 0)
+        .map((size) => ({
+          id: size.id,
+          productId: product.id,
+          name: product.name,
+          size: size.label,
+          category: product.categoryName,
+        })),
+    ).slice(0, 12),
+    unfulfilledOrders,
+    unfulfilledCount,
     lowStock: outOfStock.slice(0, 8).map((product) => {
       const thumb = product.images.find((img) => img.isThumbnail)?.url ?? product.images[0]?.url ?? null;
       const stock = product.sizes.reduce((s, v) => s + v.stock, 0);

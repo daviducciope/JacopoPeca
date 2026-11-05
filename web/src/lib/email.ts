@@ -7,6 +7,11 @@ import type { Prisma } from "@prisma/client";
 export const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://jacopopeca.com").replace(/\/$/, "");
 const marketingKinds = new Set(["welcome", "cart-reminder", "care", "editorial", "winback"]);
 
+export function adminNotifyEmail() {
+  const raw = (process.env.ADMIN_NOTIFY_EMAIL || process.env.SENDGRID_REPLY_TO_EMAIL || "").trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw) ? raw : null;
+}
+
 export async function enqueueEmail(key: string, email: string, kind: string, payload: Prisma.InputJsonObject, scheduledAt = new Date()) {
   return requirePrisma().emailJob.upsert({
     where: { dedupeKey: key }, update: { dedupeKey: key },

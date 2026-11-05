@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { formatPrice } from "@/lib/catalog";
+import { buildProductImageAlt, categoryHref, getCategorySeo } from "@/lib/category-seo";
 import {
   getRelatedStorefrontProducts,
   getStorefrontProductBySlug,
@@ -20,8 +21,10 @@ import {
 import { ensureDynamicRendering } from "@/lib/render-mode";
 import {
   absoluteUrl,
+  breadcrumbJsonLd,
   productAvailability,
   productSeoDescription,
+  productSeoLabel,
   productSeoTitle,
 } from "@/lib/seo";
 import AddToCartButton from "@/components/AddToCartButton";
@@ -42,23 +45,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getStorefrontProductBySlug(slug);
-  if (!product) return { title: "Prodotto non trovato" };
+  if (!product) return { title: "Prodotto non trovato", robots: { index: false, follow: true } };
   const image =
     product.images.find((item) => item.isThumbnail) || product.images[0];
   const title = productSeoTitle(product);
   const description = productSeoDescription(product);
+  const categoryKeywords = getCategorySeo(product.categorySlug)?.keywords ?? [];
 
   return {
-    title,
+    title: { absolute: title },
     description,
     keywords: [
       product.name,
       product.categoryName,
+      productSeoLabel(product),
       "Jacopo Peca",
-      `${product.categoryName} fatto a mano`,
-      "denim streetwear artigianale",
-      "tattoo clothing",
-      "made in Italy",
+      ...categoryKeywords,
     ],
     alternates: {
       canonical: `/product/${product.slug}`,
@@ -69,7 +71,7 @@ export async function generateMetadata({
       description,
       url: `/product/${product.slug}`,
       images: image
-        ? [{ url: absoluteUrl(image.url), alt: image.alt || product.name }]
+        ? [{ url: absoluteUrl(image.url), alt: buildProductImageAlt(product, image.alt) }]
         : undefined,
     },
     twitter: {
@@ -218,15 +220,38 @@ export default async function ProductPage({
           "@type": "Brand",
           name: "Jacopo Peca",
         },
-        manufacturer: {
-          "@type": "Organization",
-          name: "Jacopo Peca Atelier",
-        },
+        manufacturer: { "@id": absoluteUrl("/#atelier") },
         countryOfOrigin: "IT",
         material:
           product.materialNotes || "Denim e tessuti premium lavorati a mano",
         category: product.categoryName,
         image: product.images.map((image) => absoluteUrl(image.url)),
+        additionalProperty: [
+          {
+            "@type": "PropertyValue",
+            name: "Lavorazione",
+            value: "100% fatto a mano in laboratorio (Handcrafted / Reworked)",
+          },
+          {
+            "@type": "PropertyValue",
+            name: "Tiratura",
+            value: "One-of-One (1/1) o serie limitata",
+          },
+          {
+            "@type": "PropertyValue",
+            name: "Atelier",
+            value: "Montesilvano (Pescara), Italia",
+          },
+        ],
+        ...(related.length > 0
+          ? {
+              isRelatedTo: related.map((item) => ({
+                "@type": "Product",
+                name: item.name,
+                url: absoluteUrl(`/product/${item.slug}`),
+              })),
+            }
+          : {}),
         offers: {
           "@type": "Offer",
           priceCurrency: "EUR",
@@ -234,6 +259,15 @@ export default async function ProductPage({
           availability: productAvailability(product),
           itemCondition: "https://schema.org/NewCondition",
           url: absoluteUrl(`/product/${product.slug}`),
+          seller: { "@id": absoluteUrl("/#atelier") },
+          hasMerchantReturnPolicy: {
+            "@type": "MerchantReturnPolicy",
+            applicableCountry: "IT",
+            returnPolicyCategory:
+              "https://schema.org/MerchantReturnFiniteReturnWindow",
+            merchantReturnDays: 14,
+            returnMethod: "https://schema.org/ReturnByMail",
+          },
           shippingDetails: {
             "@type": "OfferShippingDetails",
             shippingRate: {
@@ -245,38 +279,30 @@ export default async function ProductPage({
               "@type": "DefinedRegion",
               addressCountry: "IT",
             },
+            deliveryTime: {
+              "@type": "ShippingDeliveryTime",
+              handlingTime: {
+                "@type": "QuantitativeValue",
+                minValue: 1,
+                maxValue: 3,
+                unitCode: "DAY",
+              },
+              transitTime: {
+                "@type": "QuantitativeValue",
+                minValue: 1,
+                maxValue: 3,
+                unitCode: "DAY",
+              },
+            },
           },
         },
       },
-      {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          {
-            "@type": "ListItem",
-            position: 1,
-            name: "Home",
-            item: absoluteUrl("/"),
-          },
-          {
-            "@type": "ListItem",
-            position: 2,
-            name: "Store",
-            item: absoluteUrl("/shop"),
-          },
-          {
-            "@type": "ListItem",
-            position: 3,
-            name: product.categoryName,
-            item: absoluteUrl(`/shop?cat=${product.categorySlug}`),
-          },
-          {
-            "@type": "ListItem",
-            position: 4,
-            name: product.name,
-            item: absoluteUrl(`/product/${product.slug}`),
-          },
-        ],
-      },
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Shop", path: "/shop" },
+        { name: product.categoryName, path: categoryHref(product.categorySlug) },
+        { name: product.name, path: `/product/${product.slug}` },
+      ]),
     ],
   };
 
@@ -303,7 +329,7 @@ export default async function ProductPage({
             </Link>
             <span className="text-white/30">/</span>
             <Link
-              href={`/shop?cat=${product.categorySlug}`}
+              href={categoryHref(product.categorySlug)}
               className="transition hover:text-white"
             >
               {product.categoryName}
@@ -313,7 +339,7 @@ export default async function ProductPage({
           </nav>
 
           <Link
-            href={`/shop?cat=${product.categorySlug}`}
+            href={categoryHref(product.categorySlug)}
             className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/75 transition hover:text-white"
           >
             <ArrowLeft size={14} className="text-red-500" />
@@ -329,6 +355,7 @@ export default async function ProductPage({
               images={product.images}
               productName={product.name}
               categoryName={product.categoryName}
+              categorySlug={product.categorySlug}
               inStock={product.inStock}
               badge={product.badge}
             />
@@ -340,10 +367,10 @@ export default async function ProductPage({
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <Link
-                  href={`/shop?cat=${product.categorySlug}`}
+                  href={categoryHref(product.categorySlug)}
                   className="text-xs font-bold uppercase tracking-[0.35em] text-red-500 transition hover:text-red-400"
                 >
-                  {product.categoryName} // Collezione JP
+                  {product.categoryName} {"//"} Collezione JP
                 </Link>
                 <span className="text-white/25">•</span>
                 <span className="text-xs italic text-white/75">
@@ -353,6 +380,9 @@ export default async function ProductPage({
 
               <h1 className="mt-2 font-display text-5xl leading-[0.92] text-white sm:text-6xl md:text-7xl">
                 {product.name}
+                <span className="mt-2 block font-sans text-xs font-medium uppercase leading-normal tracking-[0.22em] text-white/65">
+                  {productSeoLabel(product)} · Made in Italy
+                </span>
               </h1>
 
               {/* Price & Availability Row */}
@@ -602,7 +632,7 @@ export default async function ProductPage({
                 </h2>
               </div>
               <Link
-                href={`/shop?cat=${product.categorySlug}`}
+                href={categoryHref(product.categorySlug)}
                 className="inline-flex items-center gap-2 border-b border-white/40 pb-1 text-xs font-bold uppercase tracking-[0.22em] text-white transition hover:border-red-500"
               >
                 Vedi tutti i {product.categoryName}{" "}
@@ -629,7 +659,7 @@ export default async function ProductPage({
                         <>
                           <Image
                             src={thumb.url}
-                            alt={thumb.alt || p.name}
+                            alt={buildProductImageAlt(p, thumb.alt)}
                             fill
                             className={`object-cover transition duration-700 ${
                               secondary
@@ -641,7 +671,7 @@ export default async function ProductPage({
                           {secondary && (
                             <Image
                               src={secondary.url}
-                              alt={secondary.alt || `${p.name} dettaglio`}
+                              alt={buildProductImageAlt(p, secondary.alt, "dettaglio")}
                               fill
                               className="object-cover opacity-0 transition duration-700 group-hover:scale-105 group-hover:opacity-100"
                               sizes="(max-width: 768px) 50vw, 25vw"
