@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Prisma, ProductStatus } from "@prisma/client";
 
 import { categories as fallbackCategories, formatPrice, products as fallbackProducts } from "@/lib/catalog";
+import { selectDiverseStorefrontProducts } from "@/lib/featured-selection";
 import { isDatabaseConfigured, prisma, requirePrisma } from "@/lib/prisma";
 
 export type AppProductImage = {
@@ -341,15 +342,7 @@ export async function getStorefrontCategories(): Promise<AppCategory[]> {
 
 export async function getFeaturedStorefrontProducts(limit = 8): Promise<AppProduct[]> {
   const products = await getStorefrontProducts();
-  const featured = products.filter((product) => product.featured);
-
-  if (featured.length >= limit) {
-    return featured.slice(0, limit);
-  }
-
-  const seen = new Set(featured.map((product) => product.id));
-  const fallback = products.filter((product) => !seen.has(product.id));
-  return [...featured, ...fallback].slice(0, limit);
+  return selectDiverseStorefrontProducts(products, limit);
 }
 
 export async function getStorefrontProductBySlug(slug: string): Promise<AppProduct | null> {

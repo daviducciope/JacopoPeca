@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, ArrowDown, MoveRight } from "lucide-react";
+import { ArrowUpRight, ArrowDown } from "lucide-react";
 
-import { formatPrice } from "@/lib/catalog";
+import { HomeDrop } from "@/components/HomeDrop";
 import { getFeaturedStorefrontProducts, getStorefrontCategories } from "@/lib/product-data";
 import { ensureDynamicRendering } from "@/lib/render-mode";
 
@@ -91,75 +91,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured products */}
-      <section className="bg-black">
-        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 lg:px-10 lg:py-24">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="font-display text-5xl text-white md:text-7xl">
-                I pezzi del momento
-              </h2>
-            </div>
-            <Link
-              href="/shop"
-              className="inline-flex min-h-11 items-center gap-3 self-start border-b border-white/40 text-xs uppercase tracking-widest text-white transition hover:border-red-500"
-            >
-              Vedi tutti <MoveRight size={18} aria-hidden="true" />
-            </Link>
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-5 lg:grid-cols-4">
-            {featured.map((product) => {
-              const thumb =
-                product.images.find((i) => i.isThumbnail) || product.images[0];
-              return (
-                <Link
-                  key={product.id}
-                  href={`/product/${product.slug}`}
-                  className="home-product group min-w-0"
-                >
-                  <div className="relative aspect-3/4 overflow-hidden bg-[#1a1a1a]">
-                    {thumb && (
-                      <Image
-                        src={thumb.url}
-                        alt={thumb.alt}
-                        fill
-                        className="object-cover transition duration-500 motion-safe:group-hover:scale-105"
-                        sizes="(max-width: 1024px) 50vw, 25vw"
-                      />
-                    )}
-                    {!product.inStock && (
-                      <div className="absolute right-3 top-3">
-                        <span className="bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                          Esaurito
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="border-b border-white/20 pb-4 pt-4">
-                    <p className="text-[10px] uppercase tracking-widest text-white/65">
-                      {product.categoryName}
-                    </p>
-                    <h3 className="mt-1 font-display text-2xl leading-tight text-white sm:text-3xl">
-                      {product.name}
-                    </h3>
-                    <div className="mt-2 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-white/80">
-                        {formatPrice(product.priceCents)}
-                      </p>
-                      {product.sizes.length > 0 && (
-                        <p className="text-[10px] text-white/65">
-                          {product.sizes.length} taglie
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <HomeDrop products={featured} />
 
       {/* About / Atelier showcase */}
       <section className="relative overflow-hidden border-t border-white/10 bg-[#0b0b0b]">
