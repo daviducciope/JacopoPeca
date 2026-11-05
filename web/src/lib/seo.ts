@@ -16,14 +16,20 @@ export function absoluteUrl(pathOrUrl: string) {
 }
 
 export function productSeoTitle(product: AppProduct) {
-  return product.seoTitle || `${product.name} - ${siteName}`;
+  return (
+    product.seoTitle ||
+    `${product.name} — ${product.categoryName} Artigianale Fatto a Mano | ${siteName}`
+  );
 }
 
 export function productSeoDescription(product: AppProduct) {
-  return (
-    product.seoDescription ||
-    `${product.categoryName} handmade Jacopo Peca. Pezzo unico o limited edition made in Italy.`
-  );
+  if (product.seoDescription) return product.seoDescription;
+  const availableSizes = product.sizes
+    .filter((s) => s.stock > 0)
+    .map((s) => s.label)
+    .join(", ");
+  const sizeNote = availableSizes ? ` Taglie disponibili: ${availableSizes}.` : "";
+  return `Scopri ${product.name}: ${product.categoryName.toLowerCase()} streetwear 100% fatto a mano in Italia da Jacopo Peca nel laboratorio di Montesilvano. Pezzo unico o tiratura limitata con spedizione rapida.${sizeNote}`;
 }
 
 export function productAvailability(product: AppProduct) {
