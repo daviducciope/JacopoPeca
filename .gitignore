@@ -3,9 +3,20 @@
 **/.next/
 **/out/
 **/*.tsbuildinfo
+**/.build-static-stash/
+**/coverage/
+**/playwright-report/
+**/test-results/
+.vercel/
 
 # Sensitive local files
-aws_credential.md
+**/aws_credential.md
+**/aws_credentials.md
+.aws/
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
 .env
 .env.*
 !.env.example
@@ -21,6 +32,13 @@ recovered-wordpress/
 /:\ \$\?\"
 web/lightsail*
 
+# Private dashboard guides (contain admin credentials)
+/Guida_Francesca_Dashboard_JacopoPeca.pdf
+/web/public/Guida_Francesca_Dashboard_JacopoPeca.pdf
+
 # OS / misc
 .DS_Store
 *.log
+*.bak
+*.swp
+*~

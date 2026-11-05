@@ -1,16 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
 import { useCart } from "@/lib/cart";
-import { stripePrices } from "@/lib/stripe-prices";
-
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : Promise.resolve(null);
 
 function formatPrice(cents: number) {
   return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -21,39 +14,12 @@ export default function CartPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function redirectWithStaticCheckout() {
-    const stripe = await stripePromise;
-    if (!stripe) {
-      throw new Error("Chiave pubblicabile Stripe non configurata");
-    }
-
-    const lineItems = items
-      .map((item) => {
-        const priceId = stripePrices[item.slug];
-        return priceId
-          ? {
-              price: priceId,
-              quantity: item.qty,
-            }
-          : null;
-      })
-      .filter((item): item is { price: string; quantity: number } => item !== null);
-
-    if (lineItems.length === 0) {
-      throw new Error("Nessun prodotto configurato per il checkout.");
-    }
-
-    const { error: stripeError } = await stripe.redirectToCheckout({
-      lineItems,
-      mode: "payment",
-      successUrl: `${window.location.origin}/checkout/success`,
-      cancelUrl: `${window.location.origin}/cart`,
-    });
-
-    if (stripeError) {
-      throw new Error(stripeError.message ?? "Errore checkout");
-    }
-  }
+  const [marketingOpt, setMarketingOpt] = useState(false);
+  const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("IT");
+  const [shipping, setShipping] = useState<{ enabled: boolean; italyStandardCents: number; europeCents: number; freeThresholdCents: number } | null>(null);
+  useEffect(() => { fetch("/api/shipping").then(r => r.ok ? r.json() : null).then(setShipping).catch(() => {}); }, []);
+  const shippingCents = shipping ? !shipping.enabled ? 0 : country !== "IT" ? shipping.europeCents : shipping.freeThresholdCents > 0 && totalCents >= shipping.freeThresholdCents ? 0 : shipping.italyStandardCents : null;
 
   async function tryServerCheckout() {
     const response = await fetch("/api/checkout", {
@@ -62,6 +28,9 @@ export default function CartPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        marketingOpt,
+        ...(email.trim() ? { email: email.trim() } : {}),
+        country,
         items: items.map((item) => ({
           slug: item.slug,
           qty: item.qty,
@@ -79,15 +48,11 @@ export default function CartPage() {
     }
 
     if (!response.ok) {
-      if ([404, 405, 503].includes(response.status)) {
-        return false;
-      }
-
       throw new Error(payload?.error ?? "Errore checkout");
     }
 
     if (!payload?.url) {
-      return false;
+      throw new Error("Checkout temporaneamente non disponibile. Il carrello è conservato.");
     }
 
     window.location.href = payload.url;
@@ -100,19 +65,7 @@ export default function CartPage() {
     setError(null);
 
     try {
-      let redirected = false;
-
-      try {
-        redirected = await tryServerCheckout();
-      } catch (serverError) {
-        if (!(serverError instanceof TypeError)) {
-          throw serverError;
-        }
-      }
-
-      if (!redirected) {
-        await redirectWithStaticCheckout();
-      }
+      await tryServerCheckout();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore imprevisto");
     } finally {
@@ -190,6 +143,7 @@ export default function CartPage() {
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2 border border-white/10 bg-white/5 px-1">
                         <button
+                          aria-label={`Riduci quantità di ${item.name}`}
                           onClick={() => updateQty(item.productId, item.size, item.qty - 1)}
                           className="px-2.5 py-1.5 text-lg font-medium text-white/60 hover:text-white"
                         >
@@ -199,6 +153,8 @@ export default function CartPage() {
                           {item.qty}
                         </span>
                         <button
+                          aria-label={`Aumenta quantità di ${item.name}`}
+                          disabled={item.qty >= 20}
                           onClick={() => updateQty(item.productId, item.size, item.qty + 1)}
                           className="px-2.5 py-1.5 text-lg font-medium text-white/60 hover:text-white"
                         >
@@ -234,16 +190,24 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-sm text-white/50">
                   <span>Spedizione</span>
-                  <span className="text-emerald-400">Gratuita</span>
+                  <span>{shippingCents === null ? "Calcolata al checkout" : shippingCents === 0 ? "Gratuita" : formatPrice(shippingCents)}</span>
                 </div>
                 <div className="border-t border-white/8 pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold text-white">Totale</span>
-                    <span className="text-lg font-semibold text-white">{formatPrice(totalCents)}</span>
+                    <span className="text-lg font-semibold text-white">{formatPrice(totalCents + (shippingCents ?? 0))}</span>
                   </div>
                 </div>
               </div>
 
+              <label className="block text-sm text-white/80">Paese di spedizione
+                <select value={country} onChange={event => setCountry(event.target.value)} className="mt-2 w-full border border-white/30 bg-[#111] p-3">
+                  {[["IT", "Italia"], ["DE", "Germania"], ["FR", "Francia"], ["ES", "Spagna"], ["AT", "Austria"], ["NL", "Paesi Bassi"], ["BE", "Belgio"]].filter(([code]) => code === "IT" || (shipping && shipping.europeCents > 0)).map(([code, name]) => <option value={code} key={code}>{name}</option>)}
+                </select>
+              </label>
+              <label className="block text-sm text-white/80">Email (facoltativa, la confermerai al pagamento)<input type="email" autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="nome@esempio.it" className="mt-2 w-full border border-white/30 bg-transparent p-3" /></label>
+              <label className="flex items-start gap-3 text-sm text-white/80"><input type="checkbox" checked={marketingOpt} onChange={event => setMarketingOpt(event.target.checked)} className="mt-1" /><span>Iscriviti alla newsletter: nuove uscite e selezioni dal laboratorio. Facoltativo; confermerai via email. <Link href="/privacy-policy" className="underline">Privacy</Link></span></label>
+              <p className="text-xs text-white/70">Prezzi e disponibilità vengono verificati al checkout. Pagamento sicuro con Stripe.</p>
               <button
                 onClick={handleCheckout}
                 disabled={loading}
@@ -253,7 +217,7 @@ export default function CartPage() {
               </button>
 
               {error && (
-                <p className="text-center text-xs text-red-400">{error}</p>
+                <p role="alert" className="text-center text-sm text-red-400">{error}</p>
               )}
 
               <Link

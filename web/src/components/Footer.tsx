@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NewsletterForm from "@/components/NewsletterForm";
 import { contactInfo, socials, storeCategories } from "@/lib/editorial-data";
 
 const infoLinks = [
@@ -152,6 +153,7 @@ export default function Footer() {
         </div>
       </div>
 
+      <NewsletterForm />
       {/* ── Bottom bar ── */}
       <div className="border-t border-[#2a2a2a] py-5 text-center text-[12px] text-[#888888] tracking-[0.5px]">
         <div className="mx-auto max-w-[1280px] px-5">

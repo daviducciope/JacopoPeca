@@ -1,0 +1,10 @@
+[Unit]
+Description=Jacopo Peca email outbox and checkout inventory reconciliation
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/jacopopeca
+ExecStart=/usr/bin/docker compose --env-file .env.production exec -T app node -e "fetch('http://'+(process.env.HOSTNAME||'127.0.0.1')+':3000/api/cron/email/',{method:'POST',headers:{authorization:'Bearer '+process.env.CRON_SECRET},signal:AbortSignal.timeout(180000)}).then(async r=>{console.log(await r.text());if(!r.ok)process.exitCode=1}).catch(()=>{console.error('Email worker request failed');process.exitCode=1})"
+TimeoutStartSec=240

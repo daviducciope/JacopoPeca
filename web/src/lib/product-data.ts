@@ -734,6 +734,37 @@ export async function updateAdminProductStatus(
   return mapSavedProduct(productId);
 }
 
+export async function updateAdminProductQuickFlags(
+  productId: string,
+  flags: {
+    status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+    featured?: boolean;
+    pinToTop?: boolean;
+  },
+) {
+  const db = requirePrisma();
+
+  let nextSortOrder: number | undefined;
+  if (flags.pinToTop) {
+    const minSort = await db.product.aggregate({
+      _min: { sortOrder: true },
+    });
+    nextSortOrder = (minSort._min.sortOrder ?? 0) - 1;
+  }
+
+  await db.product.update({
+    where: { id: productId },
+    data: {
+      ...(flags.status ? { status: flags.status } : {}),
+      ...(flags.status === "ARCHIVED" ? { featured: false } : {}),
+      ...(typeof flags.featured === "boolean" ? { featured: flags.featured } : {}),
+      ...(nextSortOrder !== undefined ? { sortOrder: nextSortOrder, featured: true } : {}),
+    },
+  });
+
+  return mapSavedProduct(productId);
+}
+
 export async function archiveAdminProduct(productId: string) {
   return updateAdminProductStatus(productId, "ARCHIVED");
 }

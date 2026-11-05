@@ -146,3 +146,44 @@ model AdminUser {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+// Consent and outbox are independent of purchases: buying never implies marketing consent.
+model NewsletterSubscription {
+  email       String   @id
+  token       String   @unique @default(uuid())
+  source      String
+  confirmationToken String? @unique @default(uuid())
+  confirmationRequestedAt DateTime @default(now())
+  consentVersion String @default("2026-11-05")
+  confirmedAt DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailJob {
+  id          String   @id @default(cuid())
+  dedupeKey   String   @unique
+  email       String
+  kind        String
+  payload     Json
+  scheduledAt DateTime @default(now())
+  sentAt      DateTime?
+  cancelledAt DateTime?
+  lockedAt    DateTime?
+  attempts    Int      @default(0)
+  lastError   String?
+  createdAt   DateTime @default(now())
+
+  @@index([sentAt, cancelledAt, scheduledAt])
+}
+
+model CheckoutReservation {
+  id        String @id @default(uuid())
+  sessionId String? @unique
+  items     Json
+  state     String @default("HOLD")
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([state, expiresAt])
+}

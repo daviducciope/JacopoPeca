@@ -87,3 +87,28 @@ body {
     @apply border border-white/12 px-4 py-2 text-sm font-semibold text-white/60 transition hover:bg-white/8 hover:text-white;
   }
 }
+
+/* Home: amplify the existing streetwear identity. */
+.home-hero { min-height: min(850px, 88svh); }
+.home-title { font-size: clamp(5rem, 13vw, 10rem); line-height: .79; max-width: 900px; }
+.home-title span { color: var(--red); }
+.home-primary { background: var(--red); color: white; border: 2px solid var(--red); transition: background .2s, border-color .2s; }
+.home-primary:hover { background: var(--red-hover); border-color: var(--red-hover); }
+.home-hero-note { position: absolute; right: 28px; top: 50%; writing-mode: vertical-rl; color: #ccc; font-size: 10px; letter-spacing: .25em; }
+.home-category:hover { background: #202020; }
+.home-category:hover svg { color: var(--red); }
+.home-product:hover h3 { color: #ddd; }
+.home-page a:focus-visible { outline: 2px solid white; outline-offset: 5px; }
+.home-categories { scroll-margin-top: 110px; }
+@media (max-width: 639px) {
+  .home-hero { min-height: min(760px, 95svh); }
+  .home-title { font-size: clamp(4.6rem, 19vw, 7.5rem); }
+  .home-hero-note { display: none; }
+  .home-scroll { margin-top: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .home-page *, .home-page *::before, .home-page *::after { transition: none !important; animation: none !important; }
+  .home-hero video { display: none; }
+  .home-hero { background-image: linear-gradient(0deg, #000c, #0008), url('/wp-content/uploads/2023/09/about.jpeg'); background-size: cover; background-position: center; }
+}

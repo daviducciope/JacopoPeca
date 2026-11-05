@@ -24,14 +24,17 @@ function readCart(): CartState {
   if (typeof window === "undefined") return { items: [] };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { items: [] };
+    const parsed = raw ? JSON.parse(raw) : { items: [] };
+    if (!Array.isArray(parsed?.items)) return { items: [] };
+    return { items: parsed.items.filter((item: CartItem) => item && typeof item.productId === "string" && typeof item.slug === "string" && typeof item.name === "string" && typeof item.image === "string" && (item.size === null || typeof item.size === "string") && Number.isSafeInteger(item.qty) && item.qty >= 1 && item.qty <= 20 && Number.isSafeInteger(item.priceCents) && item.priceCents >= 0) };
   } catch {
     return { items: [] };
   }
 }
 
 let listeners: Array<() => void> = [];
-let snapshot: CartState = { items: [] };
+const EMPTY_CART: CartState = { items: [] };
+let snapshot: CartState = EMPTY_CART;
 
 function emitChange() {
   snapshot = readCart();
@@ -50,12 +53,13 @@ function getSnapshot(): CartState {
 }
 
 function getServerSnapshot(): CartState {
-  return { items: [] };
+  return EMPTY_CART;
 }
 
 /* ── Init snapshot on client ── */
 if (typeof window !== "undefined") {
   snapshot = readCart();
+  window.addEventListener("storage", event => { if (event.key === STORAGE_KEY) emitChange(); });
 }
 
 /* ── Cart actions ── */
@@ -69,14 +73,15 @@ function itemKey(productId: string, size: string | null) {
 }
 
 function addItem(item: Omit<CartItem, "qty">, qty = 1) {
+  if (!Number.isSafeInteger(qty) || qty < 1) return;
   const state = readCart();
   const existing = state.items.find(
     (i) => itemKey(i.productId, i.size) === itemKey(item.productId, item.size)
   );
   if (existing) {
-    existing.qty += qty;
+    existing.qty = Math.min(20, existing.qty + qty);
   } else {
-    state.items.push({ ...item, qty });
+    state.items.push({ ...item, qty: Math.min(20, qty) });
   }
   persist(state);
 }
@@ -90,12 +95,13 @@ function removeItem(productId: string, size: string | null) {
 }
 
 function updateQty(productId: string, size: string | null, qty: number) {
+  if (!Number.isSafeInteger(qty)) return;
   if (qty < 1) return removeItem(productId, size);
   const state = readCart();
   const item = state.items.find(
     (i) => itemKey(i.productId, i.size) === itemKey(productId, size)
   );
-  if (item) item.qty = qty;
+  if (item) item.qty = Math.min(20, qty);
   persist(state);
 }
 

@@ -1,11 +1,30 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { updateAdminOrderStatus } from "@/lib/order-data";
+import { updateAdminOrder } from "@/lib/order-data";
 import { isDatabaseConfigured } from "@/lib/prisma";
 
-const orderStatusSchema = z.object({
-  status: z.enum(["PENDING", "PAID", "FULFILLED", "CANCELLED", "REFUNDED"]),
+const orderUpdateSchema = z.object({
+  status: z.enum(["PENDING", "PAID", "FULFILLED", "CANCELLED", "REFUNDED"]).optional(),
+  carrier: z.string().trim().max(80).nullable().optional(),
+  trackingCode: z.string().trim().max(120).nullable().optional(),
+  trackingUrl: z.string().trim().max(500).nullable().optional(),
+  adminNotes: z.string().trim().max(1000).nullable().optional(),
+  customerPhone: z.string().trim().max(60).nullable().optional(),
+  restoreStock: z.boolean().optional(),
+  sendTrackingEmail: z.boolean().optional(),
+  address: z
+    .object({
+      name: z.string().trim().max(120).nullable().optional(),
+      line1: z.string().trim().max(200).nullable().optional(),
+      line2: z.string().trim().max(200).nullable().optional(),
+      city: z.string().trim().max(120).nullable().optional(),
+      state: z.string().trim().max(80).nullable().optional(),
+      postal_code: z.string().trim().max(40).nullable().optional(),
+      country: z.string().trim().max(40).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 type RouteContext = {
@@ -25,16 +44,19 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Payload non valido." }, { status: 400 });
   }
 
-  const result = orderStatusSchema.safeParse(payload);
+  const result = orderUpdateSchema.safeParse(payload);
   if (!result.success) {
-    return NextResponse.json({ error: "Stato ordine non valido." }, { status: 400 });
+    return NextResponse.json({ error: "Dati aggiornamento ordine non validi." }, { status: 400 });
   }
 
   try {
-    const order = await updateAdminOrderStatus(id, result.data.status);
-    return NextResponse.json({ order });
+    const { order, emailSent, emailQueued } = await updateAdminOrder(id, result.data);
+    return NextResponse.json({ order, emailSent, emailQueued });
   } catch (error) {
-    console.error("Unable to update order status:", error);
-    return NextResponse.json({ error: "Impossibile aggiornare lo stato dell'ordine." }, { status: 500 });
+    console.error("Unable to update order:", error);
+    return NextResponse.json(
+      { error: "Impossibile aggiornare l'ordine." },
+      { status: 500 },
+    );
   }
 }

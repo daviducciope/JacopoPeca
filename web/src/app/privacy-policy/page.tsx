@@ -20,8 +20,12 @@ export default function PrivacyPolicyPage() {
           incluse richieste inviate tramite email, telefono, WhatsApp o moduli eventualmente presenti nelle pagine.
         </p>
         <p>
-          I dati vengono usati esclusivamente per rispondere a richieste commerciali, gestire ordini, assistenza e comunicazioni relative ai servizi richiesti.
+          I dati vengono usati per rispondere alle richieste, gestire ordini, pagamenti, spedizioni e assistenza. I pagamenti sono elaborati da Stripe; le comunicazioni email sono inviate tramite Twilio SendGrid.
         </p>
+        <h2 className="font-display text-2xl text-white">Newsletter e comunicazioni promozionali</h2>
+        <p>L’iscrizione alla newsletter è facoltativa, separata dall’acquisto e mai preselezionata. Richiediamo la conferma tramite email prima di inviare contenuti promozionali. Registriamo indirizzo email, provenienza e data della richiesta, versione del consenso, conferma ed eventuale revoca.</p>
+        <p>Gli iscritti ricevono selezioni di prodotti disponibili, novità dal laboratorio, suggerimenti sulla cura del denim e, se hanno lasciato un checkout incompleto, un promemoria. Le selezioni editoriali sono previste il primo e il quindicesimo giorno del mese; distanziamo le email promozionali di almeno sette giorni. Ogni email promozionale contiene il collegamento di disiscrizione. La revoca interrompe gli invii promozionali in coda e non impedisce le comunicazioni necessarie per gli ordini.</p>
+        <p>Non iscriviamo automaticamente i clienti precedenti. Il carrello è salvato nel browser; i dati di checkout sono verificati sul server. Per richieste sul consenso e sulla conservazione dei dati puoi usare il contatto indicato qui sotto.</p>
         <p>
           Per richieste su dati personali, rettifica o cancellazione puoi scrivere a {contactInfo.email}.
         </p>

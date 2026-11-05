@@ -118,6 +118,15 @@ export function AdminProductsManager({
   const [stockEditId, setStockEditId] = useState<string | null>(null);
   const [stockValues, setStockValues] = useState<Record<string, string>>({});
 
+  // Quick Direct Sale (Store / Instagram / WhatsApp)
+  const [quickSaleProductId, setQuickSaleProductId] = useState<string | null>(null);
+  const [quickSaleVariantId, setQuickSaleVariantId] = useState<string>("");
+  const [quickSaleChannel, setQuickSaleChannel] = useState<"INSTAGRAM" | "WHATSAPP" | "STORE">(
+    "INSTAGRAM",
+  );
+  const [quickSaleCustomer, setQuickSaleCustomer] = useState("");
+  const [quickSalePhone, setQuickSalePhone] = useState("");
+
   // Delete confirmation
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -618,6 +627,164 @@ export function AdminProductsManager({
     });
     if (shouldScroll) {
       scrollToEditor();
+    }
+  }
+
+  function duplicateProduct(product: AppProduct) {
+    setEditingId(null); // nuovo prodotto!
+    slugManualRef.current = false;
+    setError(null);
+
+    // Incrementa il numero finale se presente (es. "MATRICOLA 5" -> "MATRICOLA 6")
+    const numMatch = product.name.trim().match(/^(.*?\s+)(\d+)$/);
+    const nextName = numMatch
+      ? `${numMatch[1]}${Number.parseInt(numMatch[2], 10) + 1}`
+      : `${product.name} (Nuovo)`;
+
+    setIsEditorOpen(true);
+    setForm({
+      name: nextName,
+      slug: slugifyValue(nextName),
+      description: product.description.replace(product.name, nextName),
+      categoryId: product.categoryId,
+      price: (product.priceCents / 100).toFixed(2),
+      compareAt: product.salePrice ? (product.salePrice / 100).toFixed(2) : "",
+      status: "ACTIVE",
+      featured: product.featured,
+      limitedEdition: product.limitedEdition,
+      badge: product.badge ?? "",
+      materialNotes: product.materialNotes ?? "",
+      careNotes: product.careNotes ?? "",
+      seoTitle: "",
+      seoDescription: "",
+      images: product.images.map((img, i) => ({
+        localId: genId(),
+        url: img.url,
+        alt: nextName,
+        width: img.width,
+        height: img.height,
+        sortOrder: i,
+      })),
+      variants:
+        product.sizes.length > 0
+          ? product.sizes.map((s) => ({
+              localId: genId(),
+              sku: "",
+              size: s.label,
+              color: s.color ?? "",
+              stock: String(Math.max(1, s.stock)),
+            }))
+          : [emptyVariantRow()],
+    });
+    setSuccess({
+      message: `Prodotto "${product.name}" duplicato come "${nextName}". Sostituisci la foto se necessario e clicca Pubblica!`,
+    });
+    scrollToEditor();
+  }
+
+  async function handleToggleFeatured(product: AppProduct, pinToTop = false) {
+    setError(null);
+    setSuccess(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          featured: pinToTop ? true : !product.featured,
+          pinToTop,
+          quickStatusOnly: true,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Impossibile aggiornare il prodotto.");
+      const updated = result.product as AppProduct;
+      startTransition(() => {
+        setProducts((current) =>
+          pinToTop
+            ? [updated, ...current.filter((p) => p.id !== updated.id)]
+            : current.map((p) => (p.id === updated.id ? updated : p)),
+        );
+      });
+      setSuccess({
+        message: pinToTop
+          ? `"${updated.name}" portato in cima alla vetrina e in Homepage!`
+          : updated.featured
+            ? `"${updated.name}" aggiunto ai capi in evidenza in Homepage.`
+            : `"${updated.name}" rimosso dall'evidenza in Homepage.`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore inatteso.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function beginQuickSale(product: AppProduct) {
+    if (quickSaleProductId === product.id) {
+      setQuickSaleProductId(null);
+      return;
+    }
+    setQuickSaleProductId(product.id);
+    const availableSize = product.sizes.find((s) => s.stock > 0) ?? product.sizes[0];
+    setQuickSaleVariantId(availableSize?.id ?? "");
+    setQuickSaleChannel("INSTAGRAM");
+    setQuickSaleCustomer("");
+    setQuickSalePhone("");
+    setStockEditId(null);
+    setConfirmDeleteId(null);
+  }
+
+  async function handleConfirmQuickSale(product: AppProduct) {
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const variantId = quickSaleVariantId || product.sizes[0]?.id || "";
+      const res = await fetch("/api/admin/orders/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          variantId,
+          quantity: 1,
+          priceCents: product.priceCents,
+          channel: quickSaleChannel,
+          customerName: quickSaleCustomer.trim() || undefined,
+          customerPhone: quickSalePhone.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Impossibile registrare la vendita.");
+
+      // Refresh local product stock
+      startTransition(() => {
+        setProducts((curr) =>
+          curr.map((p) => {
+            if (p.id !== product.id) return p;
+            const nextSizes = p.sizes.map((s) =>
+              s.id === variantId ? { ...s, stock: Math.max(0, s.stock - 1) } : s,
+            );
+            const totalLeft = nextSizes.reduce((sum, s) => sum + s.stock, 0);
+            return {
+              ...p,
+              sizes: nextSizes,
+              inStock: p.status === "ACTIVE" && totalLeft > 0,
+            };
+          }),
+        );
+      });
+
+      setQuickSaleProductId(null);
+      setSuccess({
+        message: `Vendita registrata (${data.order.orderNumber}) per "${product.name}"! Lo stock è stato scalato e l'ordine è visibile nella sezione Ordini.`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore registrazione vendita.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -1566,14 +1733,38 @@ export function AdminProductsManager({
 
                         {/* Azioni */}
                         <td className="px-4 py-3.5 text-right">
-                          <div className="flex flex-wrap items-center justify-end gap-2">
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
                             <button
                               type="button"
                               onClick={() => beginEdit(product)}
-                              className="cursor-pointer border border-white/25 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-black transition hover:bg-white/85"
+                              className="cursor-pointer border border-white/25 bg-white px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider text-black transition hover:bg-white/85"
                             >
                               ✏️ Modifica
                             </button>
+
+                            <button
+                              type="button"
+                              onClick={() => duplicateProduct(product)}
+                              className="cursor-pointer border border-white/20 bg-white/8 px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white/20"
+                              title="Duplica questo prodotto per crearne uno simile in 1 secondo"
+                            >
+                              📋 Duplica
+                            </button>
+
+                            {canWrite && (
+                              <button
+                                type="button"
+                                onClick={() => beginQuickSale(product)}
+                                className={`cursor-pointer border px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
+                                  quickSaleProductId === product.id
+                                    ? "border-amber-400 bg-amber-500/25 text-amber-200"
+                                    : "border-amber-400/35 bg-amber-500/12 text-amber-300 hover:bg-amber-500/25"
+                                }`}
+                                title="Segna come venduto in Store / Instagram / WhatsApp"
+                              >
+                                ⚡ Venduto
+                              </button>
+                            )}
 
                             {canWrite && (
                               <button
@@ -1581,7 +1772,7 @@ export function AdminProductsManager({
                                 onClick={() =>
                                   isEditingStock ? setStockEditId(null) : beginStockEdit(product)
                                 }
-                                className={`cursor-pointer border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
+                                className={`cursor-pointer border px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
                                   isEditingStock
                                     ? "border-blue-400 bg-blue-500/20 text-blue-200"
                                     : "border-blue-400/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
@@ -1591,12 +1782,32 @@ export function AdminProductsManager({
                               </button>
                             )}
 
+                            {canWrite && (
+                              <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() => handleToggleFeatured(product, !product.featured)}
+                                className={`cursor-pointer border px-2 py-1.5 text-xs font-bold transition ${
+                                  product.featured
+                                    ? "border-amber-400/50 bg-amber-400/20 text-amber-300"
+                                    : "border-white/15 bg-white/5 text-white/45 hover:text-white"
+                                }`}
+                                title={
+                                  product.featured
+                                    ? "In evidenza in Home (clicca per rimuovere)"
+                                    : "Metti in evidenza in Home e in cima allo shop"
+                                }
+                              >
+                                ★
+                              </button>
+                            )}
+
                             {canWrite && product.status !== "ACTIVE" && (
                               <button
                                 type="button"
                                 disabled={isSubmitting}
                                 onClick={() => handleQuickStatusChange(product, "ACTIVE")}
-                                className="cursor-pointer border border-emerald-400/35 bg-emerald-500/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300 transition hover:bg-emerald-500/25"
+                                className="cursor-pointer border border-emerald-400/35 bg-emerald-500/15 px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300 transition hover:bg-emerald-500/25"
                               >
                                 🟢 Pubblica
                               </button>
@@ -1607,7 +1818,7 @@ export function AdminProductsManager({
                                 type="button"
                                 disabled={isSubmitting}
                                 onClick={() => handleQuickStatusChange(product, "ARCHIVED")}
-                                className="cursor-pointer border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white/60 transition hover:bg-white/15 hover:text-white"
+                                className="cursor-pointer border border-white/15 bg-white/5 px-2 py-1.5 text-xs font-semibold text-white/60 transition hover:bg-white/15 hover:text-white"
                                 title="Nascondi dallo shop (Archivia)"
                               >
                                 Archivia
@@ -1620,7 +1831,7 @@ export function AdminProductsManager({
                                 onClick={() =>
                                   setConfirmDeleteId(isConfirmingDelete ? null : product.id)
                                 }
-                                className="cursor-pointer border border-red-400/25 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/25"
+                                className="cursor-pointer border border-red-400/25 bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/25"
                                 title="Elimina definitivamente"
                               >
                                 🗑️
@@ -1630,7 +1841,7 @@ export function AdminProductsManager({
                             <Link
                               href={`/product/${product.slug}`}
                               target="_blank"
-                              className="border border-white/12 px-2.5 py-1.5 text-xs font-semibold text-white/55 transition hover:border-white/30 hover:text-white"
+                              className="border border-white/12 px-2 py-1.5 text-xs font-semibold text-white/55 transition hover:border-white/30 hover:text-white"
                               title="Apri scheda prodotto nello shop"
                             >
                               ↗
@@ -1638,6 +1849,83 @@ export function AdminProductsManager({
                           </div>
                         </td>
                       </tr>
+
+                      {/* Barra Vendita Rapida (Store / Instagram / WhatsApp) */}
+                      {quickSaleProductId === product.id && (
+                        <tr className="border-b border-amber-400/30 bg-amber-950/20">
+                          <td colSpan={6} className="px-5 py-4">
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                                  ⚡ Vendita Diretta — {product.name} ({formatPrice(product.priceCents)}):
+                                </span>
+
+                                <select
+                                  value={quickSaleChannel}
+                                  onChange={(e) =>
+                                    setQuickSaleChannel(
+                                      e.target.value as "INSTAGRAM" | "WHATSAPP" | "STORE",
+                                    )
+                                  }
+                                  className="input-admin w-44 py-1.5 text-xs"
+                                >
+                                  <option value="INSTAGRAM">📸 Instagram DM</option>
+                                  <option value="WHATSAPP">💬 WhatsApp</option>
+                                  <option value="STORE">🏪 Negozio Fisico</option>
+                                </select>
+
+                                {product.sizes.length > 1 && (
+                                  <select
+                                    value={quickSaleVariantId}
+                                    onChange={(e) => setQuickSaleVariantId(e.target.value)}
+                                    className="input-admin w-32 py-1.5 text-xs"
+                                  >
+                                    {product.sizes.map((s) => (
+                                      <option key={s.id} value={s.id}>
+                                        Taglia {s.label} ({s.stock} pz)
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+
+                                <input
+                                  type="text"
+                                  value={quickSaleCustomer}
+                                  onChange={(e) => setQuickSaleCustomer(e.target.value)}
+                                  placeholder="Nome cliente / @instagram (opzionale)"
+                                  className="input-admin w-56 py-1.5 text-xs"
+                                />
+
+                                <input
+                                  type="tel"
+                                  value={quickSalePhone}
+                                  onChange={(e) => setQuickSalePhone(e.target.value)}
+                                  placeholder="Telefono (opzionale)"
+                                  className="input-admin w-44 py-1.5 text-xs"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isSubmitting}
+                                  onClick={() => handleConfirmQuickSale(product)}
+                                  className="cursor-pointer bg-amber-400 px-4 py-2 text-xs font-bold uppercase tracking-wider text-black transition hover:bg-amber-300"
+                                >
+                                  {isSubmitting ? "Registrazione…" : "✓ Conferma Vendita e Scala Stock"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuickSaleProductId(null)}
+                                  className="cursor-pointer border border-white/20 px-3 py-2 text-xs text-white/70 hover:text-white"
+                                >
+                                  Annulla
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
 
                       {/* Barra modifica rapida Stock */}
                       {isEditingStock && (

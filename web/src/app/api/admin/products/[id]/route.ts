@@ -6,7 +6,7 @@ import {
   archiveAdminProduct,
   deleteAdminProduct,
   updateAdminProduct,
-  updateAdminProductStatus,
+  updateAdminProductQuickFlags,
 } from "@/lib/product-data";
 import { isDatabaseConfigured } from "@/lib/prisma";
 
@@ -20,7 +20,9 @@ function isPrismaUniqueError(error: unknown): boolean {
 }
 
 const quickStatusSchema = z.object({
-  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
+  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
+  featured: z.boolean().optional(),
+  pinToTop: z.boolean().optional(),
   quickStatusOnly: z.literal(true),
 });
 
@@ -41,16 +43,16 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { id } = await context.params;
   const payload = await request.json();
 
-  // Check if this is a quick status toggle
+  // Check if this is a quick status / featured / pin toggle
   const statusCheck = quickStatusSchema.safeParse(payload);
   if (statusCheck.success) {
     try {
-      const product = await updateAdminProductStatus(id, statusCheck.data.status);
+      const product = await updateAdminProductQuickFlags(id, statusCheck.data);
       return NextResponse.json({ product });
     } catch (error) {
-      console.error("Unable to update product status.", error);
+      console.error("Unable to update product quick flags.", error);
       return NextResponse.json(
-        { error: "Impossibile cambiare lo stato del prodotto." },
+        { error: "Impossibile aggiornare il prodotto." },
         { status: 500 },
       );
     }
