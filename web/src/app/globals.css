@@ -110,5 +110,5 @@ body {
   html { scroll-behavior: auto; }
   .home-page *, .home-page *::before, .home-page *::after { transition: none !important; animation: none !important; }
   .home-hero video { display: none; }
-  .home-hero { background-image: linear-gradient(0deg, #000c, #0008), url('/wp-content/uploads/2023/09/about.jpeg'); background-size: cover; background-position: center; }
+  .home-hero { background-image: linear-gradient(0deg, #000c, #0008), url('/images/atelier/atelier-embroidery.jpg'); background-size: cover; background-position: center; }
 }

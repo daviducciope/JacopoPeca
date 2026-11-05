@@ -40,16 +40,16 @@ export const aboutHighlights = [
 
 export const aboutGallery = [
   {
-    src: "/wp-content/uploads/2023/09/about.jpeg",
-    alt: "Jacopo Peca nel laboratorio",
+    src: "/images/atelier/atelier-embroidery.jpg",
+    alt: "Jacopo Peca al lavoro sulla macchina da ricamo Cornely nel laboratorio",
   },
   {
-    src: "/wp-content/uploads/2023/09/photo_5816745286842827671_y.png",
-    alt: "Jacopo Peca al lavoro nel laboratorio",
+    src: "/images/atelier/atelier-airbrush.jpg",
+    alt: "Lavorazione artigianale e aerografo su capo custom Tattoo JP Clothing",
   },
   {
-    src: "/wp-content/uploads/2023/09/photo_5816745286842827673_y.png",
-    alt: "Dettaglio lavorazione artigianale Jacopo Peca",
+    src: "/images/atelier/atelier-singer.jpg",
+    alt: "Cucitura manuale su denim strappato in laboratorio",
   },
 ];
 
