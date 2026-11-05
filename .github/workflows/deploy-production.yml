@@ -1,0 +1,51 @@
+name: Deploy to Lightsail on push to main
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy runtime to Lightsail
+    runs-on: ubuntu-latest
+    env:
+      HAS_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY != '' }}
+      RUNTIME_HOST: ${{ secrets.JP_RUNTIME_HOST || '3.69.159.183' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH to Lightsail
+        if: env.HAS_SSH_KEY == 'true'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_lightsail
+          chmod 600 ~/.ssh/id_lightsail
+          ssh-keyscan -H "$RUNTIME_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          rsync -az \
+            --exclude=node_modules/ \
+            --exclude=.next/ \
+            --exclude=out/ \
+            --exclude='.env*' \
+            --exclude='*.tsbuildinfo' \
+            --exclude=.build-static-stash/ \
+            -e "ssh -i ~/.ssh/id_lightsail -o BatchMode=yes -o ConnectTimeout=15" \
+            ./web/ "ubuntu@${RUNTIME_HOST}:/opt/jacopopeca/web/"
+
+          ssh -i ~/.ssh/id_lightsail -o BatchMode=yes -o ConnectTimeout=15 "ubuntu@${RUNTIME_HOST}" \
+            "cd /opt/jacopopeca && sudo docker compose --env-file .env.production build app && sudo docker compose --env-file .env.production up -d --no-build app"
+
+      - name: Notice when GitHub Secret is not configured
+        if: env.HAS_SSH_KEY != 'true'
+        run: |
+          echo "::notice::Secret LIGHTSAIL_SSH_KEY non configurato su GitHub. Il deploy automatico avviene tramite l'hook locale .githooks/pre-push oppure aggiungendo il secret LIGHTSAIL_SSH_KEY (contenuto di .artifacts/jacopopeca-runtime-staging-key.pem) nelle impostazioni del repository GitHub."
+

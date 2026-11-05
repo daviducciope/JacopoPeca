@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${SKIP_DEPLOY:-0}" == "1" ]]; then
+  echo "[pre-push] SKIP_DEPLOY=1 impostato, salto il deploy automatico."
+  exit 0
+fi
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+should_deploy=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    should_deploy=1
+    break
+  fi
+done
+
+if [[ "$should_deploy" -eq 1 ]]; then
+  echo "[pre-push] Push su main rilevato -> avvio automatico di: node ops/deploy-commerce-update.mjs"
+  cd "$ROOT_DIR"
+  node ops/deploy-commerce-update.mjs
+fi
+
