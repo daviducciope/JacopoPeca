@@ -14,10 +14,13 @@ function createPrismaClient() {
     return null;
   }
 
-  const requiresSsl = process.env.DATABASE_URL.includes("sslmode=require")
-    || process.env.DATABASE_URL.includes("rds.amazonaws.com");
+  const requiresSsl =
+    process.env.DATABASE_URL.includes("sslmode=require") ||
+    process.env.DATABASE_URL.includes("rds.amazonaws.com") ||
+    process.env.DATABASE_URL.includes(":15432/");
+  const cleanUrl = process.env.DATABASE_URL.replace(/[?&]sslmode=require/g, "");
   const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: cleanUrl,
     ...(requiresSsl
       ? {
           ssl: {

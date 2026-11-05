@@ -3,8 +3,22 @@ import { getAdminProductsPageData } from "@/lib/product-data";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProductsPage() {
-  const data = await getAdminProductsPageData();
+type PageProps = {
+  searchParams: Promise<{
+    new?: string;
+    edit?: string;
+    filter?: string;
+    cat?: string;
+  }>;
+};
+
+export default async function AdminProductsPage({ searchParams }: PageProps) {
+  const [data, params] = await Promise.all([getAdminProductsPageData(), searchParams]);
+
+  const validFilters = ["all", "active", "in_stock", "out_of_stock", "draft", "archived"] as const;
+  const initialStatusFilter = validFilters.includes(params.filter as (typeof validFilters)[number])
+    ? (params.filter as (typeof validFilters)[number])
+    : "all";
 
   return (
     <AdminProductsManager
@@ -12,6 +26,10 @@ export default async function AdminProductsPage() {
       categories={data.categories}
       databaseEnabled={data.databaseEnabled}
       usingFallbackData={data.usingFallbackData}
+      initialOpenNew={params.new === "1" || params.new === "true"}
+      initialEditId={params.edit ?? null}
+      initialStatusFilter={initialStatusFilter}
+      initialCategoryFilter={params.cat ?? "all"}
     />
   );
 }

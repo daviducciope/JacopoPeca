@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 
 const uploadSchema = z.object({
   filename: z.string().trim().min(1).max(180),
-  contentType: z.string().trim().regex(/^image\/(jpeg|png|webp|gif|avif)$/),
-  size: z.number().int().positive().max(12 * 1024 * 1024),
+  contentType: z.string().trim().regex(/^image\/(jpeg|jpg|png|webp|gif|avif|heic|heif)$/),
+  size: z.number().int().positive().max(25 * 1024 * 1024),
 });
 
 function getPublicUrl(bucket: string, region: string, key: string) {

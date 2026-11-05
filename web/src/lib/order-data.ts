@@ -1,6 +1,7 @@
 import "server-only";
 
-import { isDatabaseConfigured, prisma } from "@/lib/prisma";
+import type { OrderStatus } from "@prisma/client";
+import { isDatabaseConfigured, prisma, requirePrisma } from "@/lib/prisma";
 
 export type AdminOrderItem = {
   id: string;
@@ -29,6 +30,43 @@ export type AdminOrdersPageData = {
   databaseEnabled: boolean;
   usingFallbackData: boolean;
 };
+
+export async function updateAdminOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+): Promise<AdminOrder> {
+  const db = requirePrisma();
+  const order = await db.order.update({
+    where: { id: orderId },
+    data: { status },
+    include: {
+      customer: true,
+      items: {
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    totalCents: order.totalCents,
+    currency: order.currency,
+    createdAt: order.createdAt.toISOString(),
+    customerEmail: order.customer.email,
+    customerName: [order.customer.firstName, order.customer.lastName].filter(Boolean).join(" "),
+    stripeCheckoutId: order.stripeCheckoutId,
+    stripePaymentIntentId: order.stripePaymentIntentId,
+    items: order.items.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      unitPriceCents: item.unitPriceCents,
+      productName: item.productName,
+      sizeLabel: item.sizeLabel,
+    })),
+  };
+}
 
 export async function getAdminOrdersPageData(): Promise<AdminOrdersPageData> {
   if (!prisma) {

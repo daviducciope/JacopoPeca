@@ -69,9 +69,23 @@ export type AdminDashboardData = {
   // catalog
   products: number;
   inStock: number;
+  outOfStock: number;
+  draftCount: number;
+  archivedCount: number;
   categories: number;
-  byCat: Array<{ name: string; count: number }>;
-  lowStock: Array<{ name: string; category: string }>;
+  byCat: Array<{ name: string; slug: string; id: string; count: number }>;
+  lowStock: Array<{ id: string; slug: string; name: string; category: string; stock: number; thumb: string | null }>;
+  recentProducts: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    category: string;
+    priceFormatted: string;
+    status: string;
+    inStock: boolean;
+    stock: number;
+    thumb: string | null;
+  }>;
   // orders (real — populated only when DB is available)
   revenueFormatted: string;
   ordersTotal: number;
@@ -101,7 +115,7 @@ const productWithRelations = {
 type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations>;
 
 const adminImageSchema = z.object({
-  url: z.string().trim().min(1, "Inserisci l'URL immagine."),
+  url: z.string().trim().min(1, "Inserisci o carica almeno un'immagine."),
   alt: z.string().trim().max(200).optional().default(""),
   width: z.number().int().positive().nullable().optional(),
   height: z.number().int().positive().nullable().optional(),
@@ -109,33 +123,29 @@ const adminImageSchema = z.object({
 });
 
 const adminVariantSchema = z.object({
-  sku: z.string().trim().min(1, "Lo SKU variante e obbligatorio.").max(80),
-  size: z.string().trim().min(1, "La taglia e obbligatoria.").max(40),
+  sku: z.string().trim().max(80).optional().default(""),
+  size: z.string().trim().min(1, "La taglia è obbligatoria.").max(40),
   color: z.string().trim().max(80).optional().default(""),
-  stock: z.number().int().min(0, "Lo stock non puo essere negativo."),
+  stock: z.number().int().min(0, "Lo stock non può essere negativo."),
 });
 
 export const adminProductSchema = z.object({
-  name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri."),
-  slug: z
-    .string()
-    .trim()
-    .min(2, "Lo slug deve avere almeno 2 caratteri.")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Usa solo lettere minuscole, numeri e trattini."),
-  description: z.string().trim().min(10, "Aggiungi una descrizione piu completa."),
+  name: z.string().trim().min(2, "Inserisci il nome del prodotto (min. 2 caratteri)."),
+  slug: z.string().trim().optional().default(""),
+  description: z.string().trim().optional().default(""),
   categoryId: z.string().trim().min(1, "Seleziona una categoria."),
-  priceCents: z.number().int().min(50, "Il prezzo minimo e 0,50 EUR."),
+  priceCents: z.number().int().min(50, "Il prezzo minimo è 0,50 €."),
   compareAtCents: z.number().int().min(50).nullable().optional(),
-  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]),
+  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).default("ACTIVE"),
   featured: z.boolean().default(false),
   limitedEdition: z.boolean().default(false),
   badge: z.string().trim().max(80).optional().default(""),
   materialNotes: z.string().trim().max(1200).optional().default(""),
   careNotes: z.string().trim().max(1200).optional().default(""),
-  seoTitle: z.string().trim().max(70).optional().default(""),
-  seoDescription: z.string().trim().max(170).optional().default(""),
-  images: z.array(adminImageSchema).min(1, "Inserisci almeno un'immagine."),
-  variants: z.array(adminVariantSchema).min(1, "Inserisci almeno una variante."),
+  seoTitle: z.string().trim().max(120).optional().default(""),
+  seoDescription: z.string().trim().max(250).optional().default(""),
+  images: z.array(adminImageSchema).min(1, "Carica almeno una foto del prodotto."),
+  variants: z.array(adminVariantSchema).min(1, "Inserisci almeno una taglia."),
 });
 
 export type AdminProductInput = z.infer<typeof adminProductSchema>;
@@ -384,15 +394,18 @@ export async function getAdminProductsPageData(): Promise<AdminProductsPageData>
 
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const { products, categories, databaseEnabled, usingFallbackData } = await getAdminProductsPageData();
-  const inStock = products.filter((product) => product.inStock);
-  const outOfStock = products.filter((product) => !product.inStock);
+  const activeProducts = products.filter((p) => p.status === "ACTIVE");
+  const inStock = activeProducts.filter((product) => product.inStock);
+  const outOfStock = activeProducts.filter((product) => !product.inStock);
+  const draftCount = products.filter((p) => p.status === "DRAFT").length;
+  const archivedCount = products.filter((p) => p.status === "ARCHIVED").length;
 
-  let revenueFormatted = "—";
+  let revenueFormatted = "€0,00";
   let ordersTotal = 0;
   let ordersLast30 = 0;
   let aovFormatted = "—";
   let topProducts: Array<{ name: string; qty: number }> = inStock
-    .slice(0, 3)
+    .slice(0, 5)
     .map((p) => ({ name: p.name, qty: 0 }));
 
   if (prisma && !usingFallbackData) {
@@ -402,19 +415,19 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
       const [orderStats, recentCount, topItems] = await Promise.all([
         prisma.order.aggregate({
-          where: { status: "PAID" },
+          where: { status: { in: ["PAID", "FULFILLED"] } },
           _sum: { totalCents: true },
           _count: { _all: true },
           _avg: { totalCents: true },
         }),
         prisma.order.count({
-          where: { status: "PAID", createdAt: { gte: thirtyDaysAgo } },
+          where: { status: { in: ["PAID", "FULFILLED"] }, createdAt: { gte: thirtyDaysAgo } },
         }),
         prisma.orderItem.groupBy({
           by: ["productName"],
           _sum: { quantity: true },
           orderBy: { _sum: { quantity: "desc" } },
-          take: 3,
+          take: 5,
         }),
       ]);
 
@@ -426,24 +439,61 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       ordersTotal = count;
       ordersLast30 = recentCount;
       aovFormatted = count > 0 ? formatPrice(Math.round(avgCents)) : "—";
-      topProducts = topItems.map((item) => ({
-        name: item.productName,
-        qty: item._sum.quantity ?? 0,
-      }));
+      if (topItems.length > 0) {
+        topProducts = topItems.map((item) => ({
+          name: item.productName,
+          qty: item._sum.quantity ?? 0,
+        }));
+      }
     } catch (error) {
       console.error("Unable to load order stats for dashboard.", error);
     }
   }
 
+  const sortedByRecent = [...products].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
   return {
     products: products.length,
     inStock: inStock.length,
+    outOfStock: outOfStock.length,
+    draftCount,
+    archivedCount,
     categories: categories.length,
-    byCat: categories.map((category) => ({ name: category.name, count: category.count })),
-    lowStock: outOfStock.slice(0, 5).map((product) => ({
-      name: product.name,
-      category: product.categoryName,
+    byCat: categories.map((category) => ({
+      name: category.name,
+      slug: category.slug,
+      id: category.id,
+      count: category.count,
     })),
+    lowStock: outOfStock.slice(0, 8).map((product) => {
+      const thumb = product.images.find((img) => img.isThumbnail)?.url ?? product.images[0]?.url ?? null;
+      const stock = product.sizes.reduce((s, v) => s + v.stock, 0);
+      return {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        category: product.categoryName,
+        stock,
+        thumb,
+      };
+    }),
+    recentProducts: sortedByRecent.slice(0, 6).map((product) => {
+      const thumb = product.images.find((img) => img.isThumbnail)?.url ?? product.images[0]?.url ?? null;
+      const stock = product.sizes.reduce((s, v) => s + v.stock, 0);
+      return {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        category: product.categoryName,
+        priceFormatted: formatPrice(product.priceCents),
+        status: product.status,
+        inStock: product.inStock,
+        stock,
+        thumb,
+      };
+    }),
     revenueFormatted,
     ordersTotal,
     ordersLast30,
@@ -511,27 +561,97 @@ function buildImages(input: AdminProductInput) {
   }));
 }
 
-function buildVariants(input: AdminProductInput) {
-  const seen = new Set<string>();
-  return input.variants.map((variant, index) => {
-    const base = variant.sku || `${input.slug}-${slugifyValue(variant.size)}`;
-    // Append index when two variants would collide on the same auto-generated SKU
-    const sku = seen.has(base) ? `${base}-${index + 1}` : base;
-    seen.add(sku);
-    return {
-      sku,
-      size: variant.size,
-      color: normalizeOptionalText(variant.color),
-      stock: variant.stock,
-    };
-  });
+async function ensureUniqueProductSlug(
+  desiredSlug: string,
+  productName: string,
+  excludeProductId?: string,
+): Promise<string> {
+  const db = requirePrisma();
+  const baseSlug = slugifyValue(desiredSlug || productName) || `prodotto-${Date.now().toString(36)}`;
+  let candidate = baseSlug;
+  let counter = 2;
+
+  while (true) {
+    const existing = await db.product.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+    if (!existing || existing.id === excludeProductId) {
+      return candidate;
+    }
+    candidate = `${baseSlug.slice(0, 52)}-${counter}`;
+    counter += 1;
+  }
 }
 
-function buildProductData(input: AdminProductInput) {
+async function buildUniqueVariants(
+  input: AdminProductInput,
+  resolvedSlug: string,
+  excludeProductId?: string,
+) {
+  const db = requirePrisma();
+  const seen = new Set<string>();
+  const results: Array<{
+    sku: string;
+    size: string;
+    color: string | null;
+    stock: number;
+  }> = [];
+
+  for (let index = 0; index < input.variants.length; index += 1) {
+    const variant = input.variants[index];
+    const sizeSlug = slugifyValue(variant.size || "uni") || "uni";
+    const rawSku = variant.sku?.trim() || "";
+    const isGenericDefault =
+      !rawSku ||
+      rawSku === "prodotto-uni" ||
+      rawSku.startsWith("prodotto-") ||
+      rawSku === "uni";
+
+    const baseSku = isGenericDefault
+      ? `${resolvedSlug}-${sizeSlug}`
+      : slugifyValue(rawSku) || `${resolvedSlug}-${sizeSlug}`;
+
+    let candidate = seen.has(baseSku) ? `${baseSku}-${index + 1}` : baseSku;
+    let suffix = 2;
+
+    while (true) {
+      if (!seen.has(candidate)) {
+        const existingVariant = await db.productVariant.findUnique({
+          where: { sku: candidate },
+          select: { productId: true },
+        });
+        if (!existingVariant || existingVariant.productId === excludeProductId) {
+          break;
+        }
+      }
+      candidate = `${baseSku.slice(0, 65)}-${suffix}`;
+      suffix += 1;
+    }
+
+    seen.add(candidate);
+    results.push({
+      sku: candidate,
+      size: variant.size.trim() || "UNI",
+      color: normalizeOptionalText(variant.color),
+      stock: Math.max(0, Math.floor(variant.stock)),
+    });
+  }
+
+  return results;
+}
+
+function buildProductData(input: AdminProductInput, resolvedSlug: string) {
+  const trimmedDesc = input.description?.trim() || "";
+  const description =
+    trimmedDesc.length >= 3
+      ? trimmedDesc
+      : `${input.name.trim()} — Capo artigianale Jacopo Peca lavorato a mano in Italia.`;
+
   return {
-    slug: input.slug,
-    name: input.name,
-    description: input.description,
+    slug: resolvedSlug,
+    name: input.name.trim(),
+    description,
     priceCents: input.priceCents,
     compareAtCents: input.compareAtCents ?? null,
     status: input.status,
@@ -548,15 +668,17 @@ function buildProductData(input: AdminProductInput) {
 
 export async function createAdminProduct(input: AdminProductInput) {
   const db = requirePrisma();
+  const resolvedSlug = await ensureUniqueProductSlug(input.slug, input.name);
+  const variants = await buildUniqueVariants(input, resolvedSlug);
 
   const product = await db.product.create({
     data: {
-      ...buildProductData(input),
+      ...buildProductData(input, resolvedSlug),
       images: {
         create: buildImages(input),
       },
       variants: {
-        create: buildVariants(input),
+        create: variants,
       },
     },
   });
@@ -566,20 +688,28 @@ export async function createAdminProduct(input: AdminProductInput) {
 
 export async function updateAdminProduct(productId: string, input: AdminProductInput) {
   const db = requirePrisma();
+  const resolvedSlug = await ensureUniqueProductSlug(input.slug, input.name, productId);
+  const variants = await buildUniqueVariants(input, resolvedSlug, productId);
+
+  // Unlink orderItems variantId before recreating variants so foreign keys never block updates
+  await db.orderItem.updateMany({
+    where: { productId },
+    data: { variantId: null },
+  });
 
   await db.product.update({
     where: {
       id: productId,
     },
     data: {
-      ...buildProductData(input),
+      ...buildProductData(input, resolvedSlug),
       images: {
         deleteMany: {},
         create: buildImages(input),
       },
       variants: {
         deleteMany: {},
-        create: buildVariants(input),
+        create: variants,
       },
     },
   });
@@ -587,20 +717,72 @@ export async function updateAdminProduct(productId: string, input: AdminProductI
   return mapSavedProduct(productId);
 }
 
-export async function archiveAdminProduct(productId: string) {
+export async function updateAdminProductStatus(
+  productId: string,
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED",
+) {
   const db = requirePrisma();
 
   await db.product.update({
-    where: {
-      id: productId,
-    },
+    where: { id: productId },
     data: {
-      status: "ARCHIVED",
-      featured: false,
+      status,
+      ...(status === "ARCHIVED" ? { featured: false } : {}),
     },
   });
 
   return mapSavedProduct(productId);
+}
+
+export async function archiveAdminProduct(productId: string) {
+  return updateAdminProductStatus(productId, "ARCHIVED");
+}
+
+export async function deleteAdminProduct(productId: string) {
+  const db = requirePrisma();
+
+  await db.$transaction([
+    db.orderItem.updateMany({
+      where: { productId },
+      data: { productId: null, variantId: null },
+    }),
+    db.product.delete({
+      where: { id: productId },
+    }),
+  ]);
+
+  return { deletedId: productId };
+}
+
+export async function createAdminCategory(name: string, description?: string): Promise<AppCategory> {
+  const db = requirePrisma();
+  const trimmedName = name.trim();
+  const baseSlug = slugifyValue(trimmedName) || `categoria-${Date.now().toString(36)}`;
+
+  let slug = baseSlug;
+  let counter = 2;
+  while (await db.category.findUnique({ where: { slug } })) {
+    slug = `${baseSlug}-${counter}`;
+    counter += 1;
+  }
+
+  const count = await db.category.count();
+  const created = await db.category.create({
+    data: {
+      name: trimmedName,
+      slug,
+      description: description?.trim() || `${trimmedName} Jacopo Peca`,
+      sortOrder: count,
+    },
+  });
+
+  return {
+    id: created.id,
+    slug: created.slug,
+    name: created.name,
+    count: 0,
+    description: created.description ?? `${created.name} Jacopo Peca`,
+  };
 }
 
 export async function updateAdminProductStock(
