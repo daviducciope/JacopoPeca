@@ -15,7 +15,10 @@ export default function NewsletterForm() {
     } catch { setMessage("Iscrizione non disponibile. Riprova più tardi."); } finally { setLoading(false); }
   }}>
     <h3 className="font-display text-2xl text-white">Dal laboratorio, nella tua inbox.</h3>
-    <p className="my-3">Nuove uscite, denim artigianale e abbinamenti. Due email al mese.</p>
+    <p className="my-3 text-white/80">
+      <strong className="font-semibold text-white">Nuove uscite</strong>,{" "}
+      <em className="italic text-white">denim artigianale e pezzi unici</em>. Due email al mese, zero spam.
+    </p>
     <label htmlFor="newsletter-email" className="block mb-2">La tua email</label>
     <div className="flex flex-wrap gap-3"><input id="newsletter-email" name="email" type="email" autoComplete="email" maxLength={254} required className="min-w-0 border border-white/30 bg-transparent p-3 text-white" placeholder="nome@esempio.it" /><button disabled={loading} className="bg-white px-5 py-3 text-black disabled:opacity-50">{loading ? "Invio…" : "Iscriviti alla newsletter"}</button></div>
     <input name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />

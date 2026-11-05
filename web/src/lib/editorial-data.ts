@@ -25,9 +25,8 @@ export const contactInfo = {
 };
 
 export const aboutStats = [
-  { label: "Capi realizzati", value: "500+" },
   { label: "Fatto a mano", value: "100%" },
-  { label: "Anni di esperienza", value: "8" },
+  { label: "Made in Italy", value: "PE" },
   { label: "Valutazione clienti", value: "4.9" },
 ];
 
@@ -57,7 +56,7 @@ export const customizeSteps = [
   {
     title: "Brief iniziale",
     description:
-      "Raccogliamo idea, capo base, fit desiderato e riferimenti visuali. Il punto di partenza e sempre il tuo immaginario.",
+      "Raccogliamo idea, capo base, fit desiderato e riferimenti visuali. Il punto di partenza è sempre il tuo immaginario.",
   },
   {
     title: "Proposta creativa",
@@ -79,18 +78,18 @@ export const customizeSteps = [
 export const customizeOptions = [
   "Ricami, patchwork, painting e interventi grafici",
   "Upcycling su jeans, giacche, camicie e felpe",
-  "Vestibilita corrette o ricostruite su richiesta",
+  "Vestibilità corrette o ricostruite su richiesta",
   "Capsule, sample unici e pezzi per shooting o live",
 ];
 
 export const shippingPolicy = [
   "Spedizioni in tutta Italia e in Europa con tracking.",
-  "I tempi variano in base a disponibilita immediata o lavorazione custom.",
+  "I tempi variano in base a disponibilità immediata o lavorazione custom.",
   "Per i pezzi su misura i tempi vengono confermati prima dell'avvio del lavoro.",
 ];
 
 export const returnPolicy = [
-  "Per i prodotti standard e possibile richiedere reso o cambio secondo disponibilita.",
+  "Per i prodotti standard è possibile richiedere reso o cambio secondo disponibilità.",
   "I capi custom o personalizzati non sono rimborsabili salvo difetti di lavorazione.",
   "Per assistenza post-vendita usa email o WhatsApp indicati nella pagina contatti.",
 ];

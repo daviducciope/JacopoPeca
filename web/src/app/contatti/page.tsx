@@ -15,11 +15,12 @@ export default function ContattiPage() {
       <section className="border-b border-white/8">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[0.95fr_1.05fr] lg:px-10">
           <div>
-            <p className="text-xs uppercase tracking-[0.45em] text-white/40">Contatti</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.45em] text-red-500">Contatti</p>
             <h1 className="mt-4 font-display text-5xl md:text-6xl">Parliamone in modo diretto.</h1>
-            <p className="mt-6 max-w-xl text-base leading-8 text-white/65">
-              Per informazioni su ordini, richieste custom, disponibilita, collaborazioni o assistenza post-vendita,
-              questi sono i riferimenti attivi del progetto Jacopo Peca.
+            <p className="mt-6 max-w-xl text-base leading-8 text-white/85">
+              Per informazioni su <strong className="font-semibold text-white">ordini, richieste custom, disponibilità</strong>,{" "}
+              <em className="italic text-white">collaborazioni o assistenza post-vendita</em>, questi sono i
+              riferimenti ufficiali del laboratorio <strong className="font-semibold text-white">Jacopo Peca</strong>.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <ContactCard label="Email" value={contactInfo.email} href={`mailto:${contactInfo.email}`} />
@@ -56,18 +57,35 @@ export default function ContattiPage() {
           </div>
         </div>
 
-        <div className="border border-white/8 bg-[#111] p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/35">Informazioni utili</p>
-          <h2 className="mt-3 text-3xl font-semibold text-white">Cosa scrivere nel primo messaggio</h2>
-          <ul className="mt-6 space-y-4 text-sm leading-7 text-white/60">
-            <li>Nome del prodotto o slug se stai chiedendo disponibilita su un capo esistente.</li>
-            <li>Taglia, misure o fit desiderato se vuoi assistenza prima dell&apos;acquisto.</li>
-            <li>Idea, foto di riferimento e base del capo se la richiesta e per una customizzazione.</li>
-            <li>Tempistiche richieste se il pezzo serve per shooting, evento o drop specifico.</li>
+        <div className="border border-white/12 bg-[#111] p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-500">Informazioni utili</p>
+          <h2 className="mt-3 text-3xl font-bold text-white">Cosa scrivere nel primo messaggio</h2>
+          <ul className="mt-6 space-y-4 text-sm leading-7 text-white/80 sm:text-base">
+            <li>
+              <strong className="font-semibold text-white">Nome del prodotto</strong> se stai chiedendo{" "}
+              <em className="italic text-white">disponibilità</em> su un capo esistente.
+            </li>
+            <li>
+              <strong className="font-semibold text-white">Taglia, misure o fit desiderato</strong> se vuoi{" "}
+              <em className="italic text-white">assistenza prima dell&apos;acquisto</em>.
+            </li>
+            <li>
+              <strong className="font-semibold text-white">Idea, foto di riferimento e base del capo</strong> se la
+              richiesta è per una <em className="italic text-white">customizzazione su misura</em>.
+            </li>
+            <li>
+              <strong className="font-semibold text-white">Tempistiche richieste</strong> se il pezzo serve per{" "}
+              <em className="italic text-white">shooting, evento o drop specifico</em>.
+            </li>
           </ul>
-          <div className="mt-8 border border-white/8 bg-black/40 p-4 text-sm leading-7 text-white/55">
-            <p>Email secondaria storica del progetto: {contactInfo.emailSecondary}</p>
-            <p className="mt-2">Citta operativa: {contactInfo.city}</p>
+          <div className="mt-8 border border-white/10 bg-black/40 p-4 text-sm leading-7 text-white/75">
+            <p>
+              <strong className="font-semibold text-white">Email secondaria:</strong> {contactInfo.emailSecondary}
+            </p>
+            <p className="mt-2">
+              <strong className="font-semibold text-white">Città operativa:</strong>{" "}
+              <em className="italic text-white/90">{contactInfo.city}</em>
+            </p>
           </div>
         </div>
       </section>

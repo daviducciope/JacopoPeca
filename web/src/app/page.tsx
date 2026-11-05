@@ -36,10 +36,17 @@ export default async function HomePage() {
           <h1 className="home-title font-display text-white">
             MADE IN<br />MY <span>STORE</span>
           </h1>
-          <p className="mt-6 max-w-lg text-sm leading-relaxed text-white/80 md:text-base">
-            Tutti i nostri capi sono fatti a mano nel mio store, garantendo
-            qualità e autenticità. Lavoriamo con passione ogni giorno per
-            offrire capi streetwear unici.
+          <p className="mt-6 max-w-lg text-base leading-relaxed text-white/90 md:text-lg">
+            Tutti i nostri capi sono{" "}
+            <strong className="font-semibold text-white">
+              fatti a mano nel mio store
+            </strong>
+            , garantendo <em className="italic text-white">qualità e autenticità</em>.
+            Lavoriamo con passione ogni giorno per offrire capi{" "}
+            <strong className="font-semibold text-white">
+              streetwear unici
+            </strong>
+            .
           </p>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <Link
@@ -182,8 +189,16 @@ export default async function HomePage() {
                   </span>
                 </div>
                 <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4">
-                  <p className="max-w-md text-xs leading-relaxed text-white/85 sm:text-sm">
-                    &ldquo;A colpi di strappi, cuciture e tattoo clothing do vita a pezzi con un&apos;identità irripetibile.&rdquo;
+                  <p className="max-w-md text-xs leading-relaxed text-white/90 sm:text-sm">
+                    &ldquo;A colpi di{" "}
+                    <em className="italic text-white">
+                      strappi, cuciture e tattoo clothing
+                    </em>{" "}
+                    do vita a pezzi con{" "}
+                    <strong className="font-semibold text-white">
+                      un&apos;identità irripetibile
+                    </strong>
+                    .&rdquo;
                   </p>
                   <span className="shrink-0 font-display text-2xl tracking-wider text-red-500 sm:text-3xl">
                     JP
@@ -201,7 +216,7 @@ export default async function HomePage() {
                   className="object-cover transition duration-700 group-hover:scale-105"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-                <span className="absolute bottom-3 left-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">
+                <span className="absolute bottom-3 left-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/95">
                   Aerografo &amp; Painting
                 </span>
               </div>
@@ -216,7 +231,7 @@ export default async function HomePage() {
                   className="object-cover object-top transition duration-700 group-hover:scale-105"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-                <span className="absolute bottom-3 left-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">
+                <span className="absolute bottom-3 left-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/95">
                   Denim Art
                 </span>
               </div>
@@ -236,96 +251,105 @@ export default async function HomePage() {
               Fatto a mano, venduto online
             </h2>
 
-            <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
-              Nessuna produzione industriale o stampa in serie. Ogni capo viene
-              costruito, inciso, dipinto e rifinito a mano in laboratorio usando
-              il denim come una tela viva, prima di essere spedito direttamente
-              a casa tua.
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-[17px] sm:leading-8">
+              <strong className="font-semibold text-white">
+                Nessuna produzione industriale o stampa in serie.
+              </strong>{" "}
+              Ogni capo viene{" "}
+              <em className="italic text-white">
+                costruito, inciso, dipinto e rifinito a mano
+              </em>{" "}
+              in laboratorio usando il denim come una{" "}
+              <strong className="font-semibold text-white">
+                <em className="italic">tela viva</em>
+              </strong>
+              , prima di essere spedito direttamente a casa tua.
             </p>
 
+            {/* Emphasized 100% Fatto a mano callout */}
+            <div className="mt-7 flex items-center gap-5 border-l-4 border-red-600 bg-white/[0.04] px-5 py-4">
+              <span className="font-display text-5xl leading-none text-white sm:text-6xl">
+                100%
+              </span>
+              <div className="h-10 w-px bg-white/15" />
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.22em] text-white sm:text-base">
+                  Fatto a mano
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-white/80 sm:text-sm">
+                  Lavorazione <em className="italic text-white">interamente artigianale</em> nel
+                  laboratorio di{" "}
+                  <strong className="font-semibold text-white">
+                    Montesilvano (PE)
+                  </strong>
+                  .
+                </p>
+              </div>
+            </div>
+
             {/* 4 Pillars Grid */}
-            <div className="mt-8 grid gap-3.5 sm:grid-cols-2">
-              <div className="border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/25">
+            <div className="mt-7 grid gap-3.5 sm:grid-cols-2">
+              <div className="border border-white/12 bg-white/[0.03] p-4 transition hover:border-white/25">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-500">
                     01 // Tiratura
                   </span>
                   <span className="h-1.5 w-1.5 bg-red-600" />
                 </div>
-                <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-white">
+                <h3 className="mt-2 text-sm font-bold uppercase tracking-wider text-white">
                   Pezzi unici o limited
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-white/60">
-                  Ogni creazione ha sfumature, strappi e cuciture impossibili da replicare.
+                <p className="mt-1.5 text-xs leading-relaxed text-white/75 sm:text-[13px]">
+                  Ogni creazione ha <em className="italic text-white/95">sfumature, strappi e cuciture</em>{" "}
+                  <strong className="font-semibold text-white">impossibili da replicare</strong>.
                 </p>
               </div>
 
-              <div className="border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/25">
+              <div className="border border-white/12 bg-white/[0.03] p-4 transition hover:border-white/25">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-500">
                     02 // Laboratorio
                   </span>
                   <span className="h-1.5 w-1.5 bg-red-600" />
                 </div>
-                <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-white">
+                <h3 className="mt-2 text-sm font-bold uppercase tracking-wider text-white">
                   Tattoo Clothing
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-white/60">
-                  Denim lavorato con macchine da cucire vintage, patchwork e pittura a mano.
+                <p className="mt-1.5 text-xs leading-relaxed text-white/75 sm:text-[13px]">
+                  Denim lavorato con <strong className="font-semibold text-white">macchine da cucire vintage</strong>,{" "}
+                  <em className="italic text-white/95">patchwork e pittura a mano</em>.
                 </p>
               </div>
 
-              <div className="border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/25">
+              <div className="border border-white/12 bg-white/[0.03] p-4 transition hover:border-white/25">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-500">
                     03 // Logistica
                   </span>
                   <span className="h-1.5 w-1.5 bg-red-600" />
                 </div>
-                <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-white">
+                <h3 className="mt-2 text-sm font-bold uppercase tracking-wider text-white">
                   Italia ed Europa
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-white/60">
-                  Spedizioni veloci con corriere tracciato, gratuite per ordini sopra €100.
+                <p className="mt-1.5 text-xs leading-relaxed text-white/75 sm:text-[13px]">
+                  Spedizioni veloci con <em className="italic text-white/95">corriere tracciato</em>,{" "}
+                  <strong className="font-semibold text-white">gratuite sopra €100</strong>.
                 </p>
               </div>
 
-              <div className="border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/25">
+              <div className="border border-white/12 bg-white/[0.03] p-4 transition hover:border-white/25">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-500">
                     04 // Garanzia
                   </span>
                   <span className="h-1.5 w-1.5 bg-red-600" />
                 </div>
-                <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-white">
+                <h3 className="mt-2 text-sm font-bold uppercase tracking-wider text-white">
                   Checkout sicuro Stripe
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-white/60">
-                  Pagamenti protetti con carte, Apple Pay, Google Pay e assistenza diretta.
-                </p>
-              </div>
-            </div>
-
-            {/* Stats & CTAs */}
-            <div className="mt-8 flex flex-wrap items-center gap-6 border-t border-white/10 pt-6">
-              <div>
-                <p className="font-display text-3xl text-white">100%</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/50">
-                  Fatto a mano
-                </p>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div>
-                <p className="font-display text-3xl text-white">500+</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/50">
-                  Capi realizzati
-                </p>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div>
-                <p className="font-display text-3xl text-white">1/1</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/50">
-                  Custom su misura
+                <p className="mt-1.5 text-xs leading-relaxed text-white/75 sm:text-[13px]">
+                  Pagamenti protetti con <strong className="font-semibold text-white">carte, Apple Pay e Google Pay</strong> con{" "}
+                  <em className="italic text-white/95">assistenza diretta</em>.
                 </p>
               </div>
             </div>

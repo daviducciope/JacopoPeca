@@ -158,7 +158,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <h1 className="mt-2 font-display text-5xl text-white md:text-7xl">
                 {product.name}
               </h1>
-              <p className="mt-5 text-base leading-8 text-white/60">
+              <p className="mt-5 text-base leading-8 text-white/85">
                 {product.description}
               </p>
             </div>
@@ -201,28 +201,40 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             />
 
             {/* Details box */}
-            <div className="mt-4 space-y-4 border border-white/8 bg-[#111] p-6">
-              <div className="flex items-center gap-3 text-sm text-white/50">
+            <div className="mt-4 space-y-4 border border-white/12 bg-[#111] p-6">
+              <div className="flex items-center gap-3 text-sm text-white/80">
                 <span className="font-semibold text-white">Categoria:</span>
                 <Link
                   href={`/shop?cat=${product.categorySlug}`}
-                  className="underline-offset-2 hover:underline hover:text-white"
+                  className="font-medium text-white/90 underline-offset-2 hover:underline hover:text-white"
                 >
                   {product.categoryName}
                 </Link>
               </div>
-              <div className="text-sm leading-7 text-white/50">
+              <div className="text-sm leading-7 text-white/80">
                 <p className="font-semibold text-white">Dettagli</p>
-                <ul className="mt-2 list-inside list-disc space-y-1">
-                  <li>Realizzato a mano nel laboratorio Jacopo Peca</li>
-                  <li>Made in Italy</li>
-                  <li>{product.materialNotes || "Materiali selezionati"}</li>
+                <ul className="mt-2 list-inside list-disc space-y-1.5">
+                  <li>
+                    <strong className="font-semibold text-white">100% realizzato a mano</strong> nel laboratorio{" "}
+                    <em className="italic text-white">Jacopo Peca</em>
+                  </li>
+                  <li>
+                    <strong className="font-semibold text-white">Made in Italy</strong> —{" "}
+                    <em className="italic text-white/90">Montesilvano (PE)</em>
+                  </li>
+                  <li>{product.materialNotes || "Materiali denim premium selezionati"}</li>
                   {product.sizes.length > 0 && (
                     <li>
-                      Taglie: {product.sizes.map((s) => s.label).join(", ")}
+                      <strong className="font-semibold text-white">Taglie:</strong>{" "}
+                      {product.sizes.map((s) => s.label).join(", ")}
                     </li>
                   )}
-                  {product.careNotes && <li>Cura: {product.careNotes}</li>}
+                  {product.careNotes && (
+                    <li>
+                      <strong className="font-semibold text-white">Cura:</strong>{" "}
+                      <em className="italic text-white/90">{product.careNotes}</em>
+                    </li>
+                  )}
                 </ul>
               </div>
             </div>

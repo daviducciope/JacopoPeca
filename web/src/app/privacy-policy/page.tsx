@@ -11,16 +11,16 @@ export default function PrivacyPolicyPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-16 text-white lg:px-10">
       <div>
-        <p className="text-xs uppercase tracking-[0.35em] text-white/35">Legal</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-red-500">Legal</p>
         <h1 className="mt-3 font-display text-5xl">Privacy Policy</h1>
       </div>
-      <section className="space-y-6 text-sm leading-8 text-white/65">
+      <section className="space-y-6 text-base leading-8 text-white/80">
         <p>
-          Questa pagina descrive in forma sintetica il trattamento dei dati personali raccolti attraverso il sito Jacopo Peca,
-          incluse richieste inviate tramite email, telefono, WhatsApp o moduli eventualmente presenti nelle pagine.
+          Questa pagina descrive in forma sintetica il trattamento dei <strong className="font-semibold text-white">dati personali</strong> raccolti attraverso il sito <strong className="font-semibold text-white">Jacopo Peca</strong>,
+          incluse richieste inviate tramite <em className="italic text-white">email, telefono, WhatsApp</em> o moduli presenti nelle pagine.
         </p>
         <p>
-          I dati vengono usati per rispondere alle richieste, gestire ordini, pagamenti, spedizioni e assistenza. I pagamenti sono elaborati da Stripe; le comunicazioni email sono inviate tramite Twilio SendGrid.
+          I dati vengono usati esclusivamente per <strong className="font-semibold text-white">rispondere alle richieste, gestire ordini, pagamenti, spedizioni e assistenza</strong>. I pagamenti sono elaborati in sicurezza da <strong className="font-semibold text-white">Stripe</strong>; le comunicazioni email sono inviate tramite <em className="italic text-white">Twilio SendGrid</em>.
         </p>
         <h2 className="font-display text-2xl text-white">Newsletter e comunicazioni promozionali</h2>
         <p>L’iscrizione alla newsletter è facoltativa, separata dall’acquisto e mai preselezionata. Richiediamo la conferma tramite email prima di inviare contenuti promozionali. Registriamo indirizzo email, provenienza e data della richiesta, versione del consenso, conferma ed eventuale revoca.</p>

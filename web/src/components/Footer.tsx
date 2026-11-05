@@ -25,9 +25,11 @@ export default function Footer() {
           >
             JACOPO <span className="text-[#e01010]">PECA</span>
           </Link>
-          <p className="text-[13px] text-[#888888] leading-[1.7] max-w-[280px] mb-6">
-            Jacopo Peca crea capi denim artigianali unici, fatti a mano nel
-            laboratorio di Montesilvano.
+          <p className="text-[13.5px] text-white/75 leading-[1.75] max-w-[290px] mb-6">
+            <strong className="font-semibold text-white">Jacopo Peca</strong> crea capi{" "}
+            <em className="italic text-white/95">denim artigianali unici</em>,{" "}
+            <strong className="font-semibold text-white">100% fatti a mano</strong> nel laboratorio di
+            Montesilvano.
           </p>
           <div className="flex gap-2.5">
             {socials.map((s) => (

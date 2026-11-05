@@ -48,12 +48,14 @@ function ShopCatalogContent({
       <section className="cement-bg cement-overlay relative">
         <div className="absolute inset-0 bg-black/60" />
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 lg:px-10">
-          <p className="text-xs uppercase tracking-[0.4em] text-white/40">Store</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-red-500">Store</p>
           <h1 className="mt-2 font-display text-6xl text-white md:text-8xl">
             {filteredProducts.length} pezzi unici
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/50">
-            Ogni capo è realizzato nel laboratorio di Jacopo Peca. Denim, streetwear e hand-painting su piccole serie e pezzi unici.
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+            Ogni capo è <strong className="font-semibold text-white">realizzato a mano</strong> nel laboratorio di
+            Jacopo Peca. <em className="italic text-white">Denim, streetwear e hand-painting</em> su piccole serie e{" "}
+            <strong className="font-semibold text-white">pezzi unici</strong>.
           </p>
         </div>
       </section>
