@@ -38,6 +38,8 @@ Copy `web/.env.example`. Required at runtime:
 - `DATABASE_URL` — PostgreSQL (app degrades to static catalog if absent)
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_GA_ID` (optional) — overrides the GA4 ID (default `G-5WD119X4KZ` in `src/components/GoogleAnalytics.tsx`). GA loads only after the user opts in to "Statistiche" in the cookie banner (`analytics` in `src/lib/cookie-consent.tsx`, Consent Mode v2)
+- `NEXT_PUBLIC_GSC_VERIFICATION` (optional) — Search Console verification meta token
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — HTTP Basic Auth for admin (returns 503 if unset)
 
 ## Architecture

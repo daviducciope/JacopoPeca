@@ -18,8 +18,8 @@ export default function CookiePreferencesTrigger() {
             ? "Verifica delle preferenze salvate sul tuo browser…"
             : preferences === null
               ? "Nessuna preferenza ancora salvata (attivi solo gli strumenti tecnici necessari)."
-              : preferences.externalMedia
-                ? "Cookie tecnici necessari + Contenuti esterni (Google Maps) attivi."
+              : preferences.externalMedia || preferences.analytics
+                ? `Strumenti tecnici necessari${preferences.externalMedia ? " + Google Maps" : ""}${preferences.analytics ? " + Google Analytics" : ""} attivi.`
                 : "Solo strumenti tecnici necessari attivi (contenuti di terze parti disattivati)."}
         </p>
       </div>

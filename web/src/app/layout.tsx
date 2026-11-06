@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { CartProvider } from "@/lib/cart";
 import { CookieConsentProvider } from "@/lib/cookie-consent";
 import CookieBanner from "@/components/CookieBanner";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -37,6 +38,9 @@ const roadRage = localFont({
 // layout is inherited by every page that does not override it, which would
 // point all those pages to the home page. Each page declares its own canonical.
 export const metadata: Metadata = {
+  verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }
+    : undefined,
   metadataBase: new URL(getSiteUrl()),
   applicationName: siteName,
   title: {
@@ -104,6 +108,7 @@ export default function RootLayout({
             {children}
             <Footer />
             <CookieBanner />
+            <GoogleAnalytics />
           </CartProvider>
         </CookieConsentProvider>
       </body>

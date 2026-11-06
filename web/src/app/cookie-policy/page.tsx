@@ -51,6 +51,15 @@ const storageItems = [
     consent: "Strettamente necessario all'esecuzione del pagamento richiesto",
   },
   {
+    name: "Google Analytics 4 (_ga, _ga_*)",
+    type: "Cookie analitici di Terza Parte",
+    provider: "Google Ireland Limited",
+    purpose:
+      "Statistiche aggregate sull'uso del sito. Lo script è bloccato finché l'utente non presta consenso esplicito e viene disattivato se il consenso è revocato.",
+    duration: "Fino a 2 anni (_ga), 13 mesi (_ga_*)",
+    consent: "Richiede consenso preventivo (Statistiche)",
+  },
+  {
     name: "Google Maps Embed (NID, CONSENT / parametri embed)",
     type: "Contenuto esterno di Terza Parte",
     provider: "Google Ireland Limited",
