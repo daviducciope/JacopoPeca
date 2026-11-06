@@ -40,6 +40,8 @@ Copy `web/.env.example`. Required at runtime:
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_GA_ID` (optional) — overrides the GA4 ID (default `G-5WD119X4KZ` in `src/components/GoogleAnalytics.tsx`). GA loads only after the user opts in to "Statistiche" in the cookie banner (`analytics` in `src/lib/cookie-consent.tsx`, Consent Mode v2)
 - `NEXT_PUBLIC_GSC_VERIFICATION` (optional) — Search Console verification meta token
+- `NEXT_PUBLIC_BING_VERIFICATION`, `NEXT_PUBLIC_YANDEX_VERIFICATION` (optional) — Bing Webmaster / Yandex verification meta tokens
+- Favicon/brand icons: `src/app/favicon.ico`, `src/app/icon.png`, `src/app/apple-icon.png`, `public/icon-{192,512}.png`, `src/app/manifest.ts` (monogramma "JP", Road Rage)
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — HTTP Basic Auth for admin (returns 503 if unset)
 
 ## Architecture
