@@ -29,6 +29,7 @@ export default function CookieBanner() {
   const [draftExternalMedia, setDraftExternalMedia] = useState<boolean | null>(
     null,
   );
+  const [draftAnalytics, setDraftAnalytics] = useState<boolean | null>(null);
 
   if (!hydrated) return null;
 
@@ -37,11 +38,13 @@ export default function CookieBanner() {
 
   const externalMediaChecked =
     draftExternalMedia ?? preferences?.externalMedia ?? false;
+  const analyticsChecked = draftAnalytics ?? preferences?.analytics ?? false;
   const detailsExpanded = showDetails || preferencesOpen;
 
   function handleCloseOrReject() {
     setShowDetails(false);
     setDraftExternalMedia(null);
+    setDraftAnalytics(null);
     if (preferences !== null && preferencesOpen) {
       closePreferences();
       return;
@@ -94,7 +97,11 @@ export default function CookieBanner() {
           <strong className="font-semibold text-white">
             mappa interattiva Google Maps
           </strong>{" "}
-          nella pagina Contatti. Chiudendo il banner con la{" "}
+          nella pagina Contatti e, se vuoi, i{" "}
+          <strong className="font-semibold text-white">
+            cookie statistici di Google Analytics
+          </strong>
+          . Chiudendo il banner con la{" "}
           <strong className="font-semibold text-white">X</strong> o cliccando su{" "}
           <strong className="font-semibold text-white">Solo tecnici</strong>,
           continui la navigazione senza cookie di terze parti. Leggi la{" "}
@@ -151,6 +158,25 @@ export default function CookieBanner() {
                 Ireland Ltd.
               </p>
             </label>
+
+            <label className="flex cursor-pointer flex-col justify-between border border-white/12 bg-white/[0.03] p-3.5 transition hover:border-white/30 sm:col-span-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-white">
+                  3. Statistiche (Google Analytics)
+                </span>
+                <input
+                  type="checkbox"
+                  checked={analyticsChecked}
+                  onChange={(e) => setDraftAnalytics(e.target.checked)}
+                  className="h-4 w-4 accent-red-600"
+                />
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-white/70">
+                Statistiche aggregate sull&apos;uso del sito (Google Analytics 4,
+                Google Ireland Ltd.). Senza il tuo consenso lo script non viene
+                caricato.
+              </p>
+            </label>
           </div>
         )}
 
@@ -169,9 +195,13 @@ export default function CookieBanner() {
             <button
               type="button"
               onClick={() => {
-                savePreferences({ externalMedia: externalMediaChecked });
+                savePreferences({
+                  externalMedia: externalMediaChecked,
+                  analytics: analyticsChecked,
+                });
                 setShowDetails(false);
                 setDraftExternalMedia(null);
+    setDraftAnalytics(null);
               }}
               className="border border-white/40 px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white transition hover:border-white hover:bg-white hover:text-black"
             >
@@ -184,6 +214,7 @@ export default function CookieBanner() {
             onClick={() => {
               setShowDetails(false);
               setDraftExternalMedia(null);
+    setDraftAnalytics(null);
               rejectNonEssential();
             }}
             className="border-2 border-white bg-transparent px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white transition hover:bg-white hover:text-black"
@@ -196,6 +227,7 @@ export default function CookieBanner() {
             onClick={() => {
               setShowDetails(false);
               setDraftExternalMedia(null);
+    setDraftAnalytics(null);
               acceptAll();
             }}
             className="border-2 border-white bg-white px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.2em] text-black transition hover:bg-transparent hover:text-white"

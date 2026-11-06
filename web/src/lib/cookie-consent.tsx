@@ -16,6 +16,8 @@ export type CookiePreferences = {
   necessary: true;
   /** External embeds such as interactive Google Maps on /contatti. */
   externalMedia: boolean;
+  /** Google Analytics 4 (statistiche aggregate). Opt-in, default false. */
+  analytics: boolean;
   /** Timestamp ISO string of when the user made the choice. */
   updatedAt: string;
   /** Policy version accepted/configured. */
@@ -36,7 +38,7 @@ type CookieConsentContextValue = {
   preferencesOpen: boolean;
   acceptAll: () => void;
   rejectNonEssential: () => void;
-  savePreferences: (prefs: { externalMedia: boolean }) => void;
+  savePreferences: (prefs: { externalMedia?: boolean; analytics?: boolean }) => void;
   openPreferences: () => void;
   closePreferences: () => void;
 };
@@ -53,6 +55,7 @@ function readStoredPreferences(): CookiePreferences | null {
     return {
       necessary: true,
       externalMedia: parsed.externalMedia,
+      analytics: parsed.analytics === true,
       updatedAt:
         typeof parsed.updatedAt === "string"
           ? parsed.updatedAt
@@ -117,10 +120,12 @@ export function CookieConsentProvider({
   );
   const [preferencesOpen, setPreferencesOpen] = useState(false);
 
-  const persist = useCallback((externalMedia: boolean) => {
+  const persist = useCallback((prefs: { externalMedia?: boolean; analytics?: boolean }) => {
+    const current = readStoredPreferences();
     const next: CookiePreferences = {
       necessary: true,
-      externalMedia,
+      externalMedia: prefs.externalMedia ?? current?.externalMedia ?? false,
+      analytics: prefs.analytics ?? current?.analytics ?? false,
       updatedAt: new Date().toISOString(),
       version: "1.0",
     };
@@ -128,10 +133,13 @@ export function CookieConsentProvider({
     setPreferencesOpen(false);
   }, []);
 
-  const acceptAll = useCallback(() => persist(true), [persist]);
-  const rejectNonEssential = useCallback(() => persist(false), [persist]);
+  const acceptAll = useCallback(() => persist({ externalMedia: true, analytics: true }), [persist]);
+  const rejectNonEssential = useCallback(
+    () => persist({ externalMedia: false, analytics: false }),
+    [persist],
+  );
   const savePreferences = useCallback(
-    ({ externalMedia }: { externalMedia: boolean }) => persist(externalMedia),
+    (prefs: { externalMedia?: boolean; analytics?: boolean }) => persist(prefs),
     [persist],
   );
   const openPreferences = useCallback(() => setPreferencesOpen(true), []);
