@@ -494,37 +494,41 @@ function ShopCatalogContent({
           <div className="flex flex-wrap items-center gap-3">
             {/* Size filter pills */}
             {availableSizes.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60">
+              <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60 sm:mr-1">
                   Taglia:
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedSize("ALL")}
-                  className={`border px-2.5 py-1.5 text-xs font-bold uppercase transition ${
-                    selectedSize === "ALL"
-                      ? "border-white bg-white text-black"
-                      : "border-white/20 bg-[#141414] text-white/75 hover:border-white/50 hover:text-white"
-                  }`}
-                >
-                  Tutte
-                </button>
-                {availableSizes.map((size) => (
+                <div className="grid w-full grid-cols-4 gap-1.5 sm:w-auto sm:flex sm:flex-wrap">
                   <button
-                    key={size}
                     type="button"
-                    onClick={() =>
-                      setSelectedSize(selectedSize === size ? "ALL" : size)
-                    }
-                    className={`border px-2.5 py-1.5 text-xs font-bold uppercase transition ${
-                      selectedSize === size
+                    onClick={() => setSelectedSize("ALL")}
+                    aria-pressed={selectedSize === "ALL"}
+                    className={`min-h-10 w-full min-w-0 border px-2 text-xs font-bold uppercase transition sm:min-h-9 sm:w-auto sm:px-2.5 ${
+                      selectedSize === "ALL"
                         ? "border-white bg-white text-black"
                         : "border-white/20 bg-[#141414] text-white/75 hover:border-white/50 hover:text-white"
                     }`}
                   >
-                    {size}
+                    Tutte
                   </button>
-                ))}
+                  {availableSizes.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() =>
+                        setSelectedSize(selectedSize === size ? "ALL" : size)
+                      }
+                      aria-pressed={selectedSize === size}
+                      className={`min-h-10 w-full min-w-0 border px-2 text-xs font-bold uppercase transition sm:min-h-9 sm:w-auto sm:px-2.5 ${
+                        selectedSize === size
+                          ? "border-white bg-white text-black"
+                          : "border-white/20 bg-[#141414] text-white/75 hover:border-white/50 hover:text-white"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
