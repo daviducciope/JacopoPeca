@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { CartProvider } from "@/lib/cart";
 import { CookieConsentProvider } from "@/lib/cookie-consent";
@@ -37,10 +37,34 @@ const roadRage = localFont({
 // NOTE: no `alternates.canonical` here on purpose. A canonical set in the root
 // layout is inherited by every page that does not override it, which would
 // point all those pages to the home page. Each page declares its own canonical.
+export const viewport: Viewport = {
+  themeColor: "#0d0d0d",
+};
+
+// Verifiche proprietà dei motori di ricerca (opzionali, via env):
+// Google Search Console, Bing Webmaster Tools, Yandex.
+const searchEngineVerification: NonNullable<Metadata["verification"]> = {};
+if (process.env.NEXT_PUBLIC_GSC_VERIFICATION) {
+  searchEngineVerification.google = process.env.NEXT_PUBLIC_GSC_VERIFICATION;
+}
+if (process.env.NEXT_PUBLIC_YANDEX_VERIFICATION) {
+  searchEngineVerification.yandex = process.env.NEXT_PUBLIC_YANDEX_VERIFICATION;
+}
+if (process.env.NEXT_PUBLIC_BING_VERIFICATION) {
+  searchEngineVerification.other = { "msvalidate.01": process.env.NEXT_PUBLIC_BING_VERIFICATION };
+}
+
 export const metadata: Metadata = {
-  verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
-    ? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }
-    : undefined,
+  verification: searchEngineVerification,
+  // Favicon: /favicon.ico (16-64px) per tutti i motori, icon.png 512px e apple-icon.png in src/app.
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   metadataBase: new URL(getSiteUrl()),
   applicationName: siteName,
   title: {
