@@ -17,6 +17,7 @@ export default function CartPage() {
   const [marketingOpt, setMarketingOpt] = useState(false);
   const [email, setEmail] = useState("");
   const [country, setCountry] = useState("IT");
+  const [honeypot, setHoneypot] = useState("");
   const [shipping, setShipping] = useState<{ enabled: boolean; italyStandardCents: number; europeCents: number; freeThresholdCents: number } | null>(null);
   useEffect(() => { fetch("/api/shipping").then(r => r.ok ? r.json() : null).then(setShipping).catch(() => {}); }, []);
   const shippingCents = shipping ? !shipping.enabled ? 0 : country !== "IT" ? shipping.europeCents : shipping.freeThresholdCents > 0 && totalCents >= shipping.freeThresholdCents ? 0 : shipping.italyStandardCents : null;
@@ -31,6 +32,7 @@ export default function CartPage() {
         marketingOpt,
         ...(email.trim() ? { email: email.trim() } : {}),
         country,
+        website: honeypot,
         items: items.map((item) => ({
           slug: item.slug,
           qty: item.qty,
@@ -206,6 +208,7 @@ export default function CartPage() {
                 </select>
               </label>
               <label className="block text-sm text-white/80">Email (facoltativa, la confermerai al pagamento)<input type="email" autoComplete="email" maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="nome@esempio.it" className="mt-2 w-full border border-white/30 bg-transparent p-3" /></label>
+              <input name="website" value={honeypot} onChange={event => setHoneypot(event.target.value)} tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
               <label className="flex items-start gap-3 text-sm text-white/80"><input type="checkbox" checked={marketingOpt} onChange={event => setMarketingOpt(event.target.checked)} className="mt-1" /><span>Iscriviti alla newsletter: nuove uscite e selezioni dal laboratorio. Facoltativo; confermerai via email. <Link href="/privacy-policy" className="underline">Privacy</Link></span></label>
               <p className="text-xs leading-relaxed text-white/70">
                 Prezzi IVA inclusa; disponibilità verificata al checkout con pagamento sicuro Stripe. Procedendo dichiari di aver letto i{" "}

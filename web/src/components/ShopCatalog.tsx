@@ -84,6 +84,12 @@ const CATEGORY_EDITORIAL: Record<
       "Pantaloni dal taglio deciso con cuciture a vista, patch e dettagli destroyed lavorati a mano.",
     highlight: "Pezzi unici o piccole serie, mai produzione industriale.",
   },
+  maglie: {
+    title: "Maglie Personalizzate Fatte a Mano",
+    subtitle:
+      "Maglie lavorate a mano in laboratorio con aerografo, cuciture a vista, ricami e dettagli tattoo clothing.",
+    highlight: "Ogni maglia è rifinita singolarmente in pezzo unico o micro-serie.",
+  },
 };
 
 export function ShopCatalog({

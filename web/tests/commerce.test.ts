@@ -255,3 +255,73 @@ test("newsletter origin checks use public domains behind the reverse proxy", asy
     assert.equal(rejected.status, 403);
   } finally { process.env.NEXT_PUBLIC_SITE_URL = previous; }
 });
+
+test("antibot guards checkout and newsletter against bots, honeypots, and flooding", async () => {
+  const { POST: checkoutPost } = await import("../src/app/api/checkout/route");
+  const { POST: newsletterPost } = await import("../src/app/api/newsletter/route");
+  const { resetRateLimitForTests } = await import("../src/lib/antibot");
+  const previous = process.env.NEXT_PUBLIC_SITE_URL;
+  process.env.NEXT_PUBLIC_SITE_URL = "https://jacopopeca.com";
+  resetRateLimitForTests();
+  try {
+    const crossOriginCheckout = await checkoutPost(
+      new Request("http://internal-container:3000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", origin: "https://evil.example" },
+        body: JSON.stringify({ items: [{ slug: "test", qty: 1 }] }),
+      }),
+    );
+    assert.equal(crossOriginCheckout.status, 403, "Cross-origin checkout requests must be rejected");
+
+    const botUaCheckout = await checkoutPost(
+      new Request("http://internal-container:3000/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          origin: "https://jacopopeca.com",
+          "user-agent": "python-requests/2.31.0",
+        },
+        body: JSON.stringify({ items: [{ slug: "test", qty: 1 }] }),
+      }),
+    );
+    assert.equal(botUaCheckout.status, 403, "Automated scraper/bot User-Agents must be rejected");
+
+    const honeypotCheckout = await checkoutPost(
+      new Request("http://internal-container:3000/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", origin: "https://jacopopeca.com" },
+        body: JSON.stringify({ items: [{ slug: "test", qty: 1 }], website: "https://spam.example" }),
+      }),
+    );
+    assert.equal(honeypotCheckout.status, 400, "Filled checkout honeypot must fail validation");
+
+    for (let i = 0; i < 6; i++) {
+      await newsletterPost(
+        new Request("http://internal-container:3000/api/newsletter/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            origin: "https://jacopopeca.com",
+            "x-forwarded-for": "203.0.113.99",
+          },
+          body: JSON.stringify({ email: "nobody@example.invalid", consent: false }),
+        }),
+      );
+    }
+    const rateLimited = await newsletterPost(
+      new Request("http://internal-container:3000/api/newsletter/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          origin: "https://jacopopeca.com",
+          "x-forwarded-for": "203.0.113.99",
+        },
+        body: JSON.stringify({ email: "nobody@example.invalid", consent: false }),
+      }),
+    );
+    assert.equal(rateLimited.status, 429, "Repeated requests from the same IP must be rate-limited");
+  } finally {
+    resetRateLimitForTests();
+    process.env.NEXT_PUBLIC_SITE_URL = previous;
+  }
+});

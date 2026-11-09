@@ -358,6 +358,41 @@ export const CATEGORY_SEO: CategorySeo[] = [
       "reworked cargo pants",
     ],
   },
+  {
+    slug: "maglie",
+    path: "maglie",
+    title: "Maglie Personalizzate Fatte a Mano – Custom Streetwear 1/1",
+    description:
+      "Maglie personalizzate, dipinte e lavorate a mano nel laboratorio Jacopo Peca: aerografo, ricami chainstitch, cuciture a vista e dettagli distressed. Pezzi unici 1/1 made in Italy.",
+    h1: "Maglie Personalizzate Fatte a Mano",
+    productLabel: "Maglia personalizzata fatta a mano",
+    contentTitle: "Maglie streetwear lavorate, dipinte e cucite a mano in laboratorio",
+    content: [
+      "Le maglie Jacopo Peca nascono nel laboratorio di Montesilvano (PE) con interventi manuali ad aerografo, ricami a punto catenella Cornely, intarsi tessili e cuciture a vista che rendono ogni capo irripetibile.",
+      "Nessuna produzione industriale in serie: ogni maglia è un pezzo unico 1/1 o una micro-tiratura artigianale made in Italy.",
+    ],
+    craftTags: [
+      "1-of-1 Handcrafted Knit & Jersey",
+      "Airbrush & Hand-Painted",
+      "Cornely Chainstitch & Raw Seams",
+      "Made in Montesilvano, Italy",
+    ],
+    faqs: [
+      {
+        question: "Come si lavano le maglie personalizzate a mano?",
+        answer:
+          "Consigliamo il lavaggio a mano in acqua fredda o in lavatrice a massimo 30°C con capo rovesciato, ciclo delicato e senza asciugatrice.",
+      },
+    ],
+    keywords: [
+      "maglie personalizzate",
+      "maglie fatte a mano",
+      "maglie streetwear artigianali",
+      "maglia dipinta a mano",
+      "maglia custom",
+      "custom streetwear top",
+    ],
+  },
 ];
 
 const bySlug = new Map(CATEGORY_SEO.map((entry) => [entry.slug, entry]));

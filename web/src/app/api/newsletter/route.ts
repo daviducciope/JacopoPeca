@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { guardPublicMutation } from "@/lib/antibot";
 import { subscribeNewsletter } from "@/lib/email";
 export const dynamic = "force-dynamic";
 const schema = z.object({ email: z.email().max(254).transform(v => v.trim().toLowerCase()), consent: z.literal(true), website: z.string().max(0).optional() });
 export async function POST(request: Request) {
-  const publicOrigin = new URL(process.env.NEXT_PUBLIC_SITE_URL || request.url).origin;
-  const allowedOrigins = new Set([publicOrigin]);
-  if (publicOrigin === "https://jacopopeca.com") {
-    allowedOrigins.add("https://www.jacopopeca.com");
-    allowedOrigins.add("https://staging.jacopopeca.com");
-  }
-  if (request.headers.get("origin") && !allowedOrigins.has(request.headers.get("origin")!)) return NextResponse.json({ error: "Origine non valida" }, { status: 403 });
+  const blocked = guardPublicMutation(request, {
+    scope: "newsletter",
+    maxRequests: 6,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (blocked) return blocked;
   try {
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Inserisci un’email valida e accetta l’iscrizione." }, { status: 400 });

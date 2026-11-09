@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, isSameOriginRequest } from "@/lib/antibot";
 
 const ADMIN_COOKIE_NAME = "jp_admin_session";
 
@@ -13,6 +14,18 @@ function computeSessionToken(email: string, password: string): string {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Origine non valida." }, { status: 403 });
+  }
+
+  const rate = checkRateLimit(request, "admin-login", 6, 15 * 60 * 1000);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Troppi tentativi di accesso. Riprova tra qualche minuto." },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfterSeconds) } },
+    );
+  }
+
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
 

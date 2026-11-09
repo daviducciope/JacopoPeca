@@ -297,9 +297,17 @@ export default async function AdminPage() {
                 Clicca su una categoria per filtrare subito i suoi prodotti.
               </p>
             </div>
-            <span className="border border-white/12 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
-              {data.categories} categorie
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+                {data.categories} categorie
+              </span>
+              <Link
+                href="/admin/products?categories=1"
+                className="border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-white hover:text-black"
+              >
+                🏷️ Gestisci Categorie →
+              </Link>
+            </div>
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">

@@ -9,6 +9,7 @@ type PageProps = {
     edit?: string;
     filter?: string;
     cat?: string;
+    categories?: string;
   }>;
 };
 
@@ -27,6 +28,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       databaseEnabled={data.databaseEnabled}
       usingFallbackData={data.usingFallbackData}
       initialOpenNew={params.new === "1" || params.new === "true"}
+      initialOpenCategories={params.categories === "1" || params.categories === "true"}
       initialEditId={params.edit ?? null}
       initialStatusFilter={initialStatusFilter}
       initialCategoryFilter={params.cat ?? "all"}

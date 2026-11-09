@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { z } from "zod";
 
+import { guardPublicMutation } from "@/lib/antibot";
 import { getShippingSettings } from "@/lib/order-data";
 import { getCheckoutProductsBySlugs } from "@/lib/product-data";
 import { reserveCheckout, releaseReservation } from "@/lib/checkout-reservations";
@@ -14,6 +15,7 @@ const checkoutSchema = z.object({
   email: z.email().max(254).optional(),
   marketingOpt: z.boolean().default(false),
   country: z.enum(["IT", "DE", "FR", "ES", "AT", "NL", "BE"]).default("IT"),
+  website: z.string().max(0).optional(),
 });
 
 function toAbsoluteUrl(value: string, baseUrl: string) {
@@ -25,6 +27,14 @@ function toAbsoluteUrl(value: string, baseUrl: string) {
 }
 
 export async function POST(request: Request) {
+  const blocked = guardPublicMutation(request, {
+    scope: "checkout",
+    maxRequests: 8,
+    windowMs: 10 * 60 * 1000,
+    requireOriginInProd: true,
+  });
+  if (blocked) return blocked;
+
   if (!isDatabaseConfigured) {
     return NextResponse.json(
       { error: "DATABASE_URL non configurato. Il checkout runtime richiede il database." },

@@ -827,6 +827,14 @@ export async function deleteAdminProduct(productId: string) {
 export async function createAdminCategory(name: string, description?: string): Promise<AppCategory> {
   const db = requirePrisma();
   const trimmedName = name.trim();
+
+  const existingByName = await db.category.findFirst({
+    where: { name: { equals: trimmedName, mode: "insensitive" } },
+  });
+  if (existingByName) {
+    throw new Error(`La categoria "${existingByName.name}" esiste già.`);
+  }
+
   const baseSlug = slugifyValue(trimmedName) || `categoria-${Date.now().toString(36)}`;
 
   let slug = baseSlug;
@@ -852,6 +860,116 @@ export async function createAdminCategory(name: string, description?: string): P
     name: created.name,
     count: 0,
     description: created.description ?? `${created.name} Jacopo Peca`,
+  };
+}
+
+export async function updateAdminCategory(
+  categoryId: string,
+  input: { name: string; description?: string },
+): Promise<AppCategory> {
+  const db = requirePrisma();
+  const trimmedName = input.name.trim();
+
+  const existing = await db.category.findUnique({
+    where: { id: categoryId },
+  });
+  if (!existing) {
+    throw new Error("Categoria non trovata.");
+  }
+
+  const duplicateName = await db.category.findFirst({
+    where: {
+      id: { not: categoryId },
+      name: { equals: trimmedName, mode: "insensitive" },
+    },
+  });
+  if (duplicateName) {
+    throw new Error(`Esiste già un'altra categoria chiamata "${duplicateName.name}".`);
+  }
+
+  const nextDescription =
+    input.description !== undefined
+      ? input.description.trim() || `${trimmedName} Jacopo Peca`
+      : existing.description ?? `${trimmedName} Jacopo Peca`;
+
+  const updated = await db.category.update({
+    where: { id: categoryId },
+    data: {
+      name: trimmedName,
+      description: nextDescription,
+    },
+    include: {
+      products: {
+        select: { id: true },
+      },
+    },
+  });
+
+  return {
+    id: updated.id,
+    slug: updated.slug,
+    name: updated.name,
+    count: updated.products.length,
+    description: updated.description ?? `${updated.name} Jacopo Peca`,
+  };
+}
+
+export async function deleteAdminCategory(
+  categoryId: string,
+  reassignToCategoryId?: string,
+): Promise<{
+  deletedId: string;
+  movedProducts: number;
+  targetCategoryId: string | null;
+  targetCategoryName: string | null;
+  targetCategorySlug: string | null;
+}> {
+  const db = requirePrisma();
+
+  const existing = await db.category.findUnique({
+    where: { id: categoryId },
+    include: {
+      products: { select: { id: true } },
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Categoria non trovata.");
+  }
+
+  const otherCategories = await db.category.findMany({
+    where: { id: { not: categoryId } },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+
+  if (otherCategories.length === 0) {
+    throw new Error("Impossibile eliminare l'unica categoria rimasta nel catalogo.");
+  }
+
+  const productCount = existing.products.length;
+  const targetCategory =
+    (reassignToCategoryId
+      ? otherCategories.find((cat) => cat.id === reassignToCategoryId)
+      : undefined) ?? otherCategories[0];
+
+  await db.$transaction(async (tx) => {
+    if (productCount > 0 && targetCategory) {
+      await tx.product.updateMany({
+        where: { categoryId },
+        data: { categoryId: targetCategory.id },
+      });
+    }
+    await tx.category.delete({
+      where: { id: categoryId },
+    });
+  });
+
+  return {
+    deletedId: categoryId,
+    movedProducts: productCount,
+    targetCategoryId: productCount > 0 && targetCategory ? targetCategory.id : null,
+    targetCategoryName: productCount > 0 && targetCategory ? targetCategory.name : null,
+    targetCategorySlug: productCount > 0 && targetCategory ? targetCategory.slug : null,
   };
 }
 

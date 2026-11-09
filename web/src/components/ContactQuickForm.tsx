@@ -55,6 +55,7 @@ export default function ContactQuickForm({
   const [name, setName] = useState("");
   const [reference, setReference] = useState("");
   const [message, setMessage] = useState("");
+  const [honeypot, setHoneypot] = useState("");
 
   const activeTopic = TOPICS.find((t) => t.id === topicId) || TOPICS[0];
 
@@ -70,11 +71,13 @@ export default function ContactQuickForm({
   }
 
   function handleWhatsApp() {
+    if (honeypot) return;
     const text = encodeURIComponent(buildFormattedMessage());
     window.open(`${contactInfo.whatsappHref}?text=${text}`, "_blank", "noopener,noreferrer");
   }
 
   function handleEmail() {
+    if (honeypot) return;
     const subject = encodeURIComponent(
       `[Jacopo Peca Store] ${activeTopic.label}${
         reference.trim() ? ` — ${reference.trim()}` : ""
@@ -174,6 +177,15 @@ export default function ContactQuickForm({
           onChange={(e) => setMessage(e.target.value)}
           placeholder={activeTopic.placeholder}
           className="mt-2 w-full border border-white/20 bg-black/60 p-3.5 text-sm leading-relaxed text-white placeholder:text-white/35 focus:border-white/60 focus:outline-none"
+        />
+        <input
+          name="website"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          className="hidden"
+          aria-hidden="true"
         />
       </div>
 

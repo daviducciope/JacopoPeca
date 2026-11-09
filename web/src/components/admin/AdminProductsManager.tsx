@@ -92,6 +92,7 @@ export function AdminProductsManager({
   usingFallbackData,
   initialEditId = null,
   initialOpenNew = false,
+  initialOpenCategories = false,
   initialStatusFilter = "all",
   initialCategoryFilter = "all",
 }: {
@@ -101,6 +102,7 @@ export function AdminProductsManager({
   usingFallbackData: boolean;
   initialEditId?: string | null;
   initialOpenNew?: boolean;
+  initialOpenCategories?: boolean;
   initialStatusFilter?: StatusFilter;
   initialCategoryFilter?: string;
 }) {
@@ -126,10 +128,19 @@ export function AdminProductsManager({
   const [autoFrameMode, setAutoFrameMode] = useState<PhotoFrameMode>("smart_4_5");
   const [studioEditingImageId, setStudioEditingImageId] = useState<string | null>(null);
 
-  // New Category inline creation
+  // Category Management (Create / Edit / Delete)
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState<boolean>(initialOpenCategories);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDesc, setNewCategoryDesc] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryDesc, setEditCategoryDesc] = useState("");
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [reassignTargetCategoryId, setReassignTargetCategoryId] = useState<string>("");
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
   // Feedback banners
   const [error, setError] = useState<string | null>(null);
@@ -270,12 +281,16 @@ export function AdminProductsManager({
     if (!trimmed) return;
     setIsCreatingCategory(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const res = await fetch("/api/admin/categories/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({
+          name: trimmed,
+          description: newCategoryDesc.trim() || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Impossibile creare la categoria.");
@@ -283,11 +298,136 @@ export function AdminProductsManager({
       setCategories((prev) => [...prev, created]);
       updateForm(setForm, "categoryId", created.id);
       setNewCategoryName("");
+      setNewCategoryDesc("");
       setShowNewCategory(false);
+      setSuccess({ message: `Categoria "${created.name}" aggiunta al catalogo!` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Errore creazione categoria.");
     } finally {
       setIsCreatingCategory(false);
+    }
+  }
+
+  function beginEditCategory(cat: AppCategory) {
+    setEditingCategoryId(cat.id);
+    setEditCategoryName(cat.name);
+    setEditCategoryDesc(cat.description || "");
+    setDeletingCategoryId(null);
+    setError(null);
+  }
+
+  async function handleSaveCategoryEdit(categoryId: string) {
+    const trimmed = editCategoryName.trim();
+    if (!trimmed) return;
+    setIsUpdatingCategory(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await fetch(`/api/admin/categories/${categoryId}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmed,
+          description: editCategoryDesc.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Impossibile aggiornare la categoria.");
+      const updated = data.category as AppCategory;
+
+      startTransition(() => {
+        setCategories((prev) =>
+          prev.map((c) => (c.id === categoryId ? { ...updated, count: c.count } : c)),
+        );
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.categoryId === categoryId ? { ...p, categoryName: updated.name } : p,
+          ),
+        );
+      });
+
+      setEditingCategoryId(null);
+      setSuccess({ message: `Categoria aggiornata in "${updated.name}".` });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore modifica categoria.");
+    } finally {
+      setIsUpdatingCategory(false);
+    }
+  }
+
+  function beginDeleteCategory(cat: AppCategory) {
+    if (deletingCategoryId === cat.id) {
+      setDeletingCategoryId(null);
+      return;
+    }
+    const fallbackCat = categories.find((c) => c.id !== cat.id);
+    setReassignTargetCategoryId(fallbackCat?.id ?? "");
+    setDeletingCategoryId(cat.id);
+    setEditingCategoryId(null);
+    setError(null);
+  }
+
+  async function handleConfirmDeleteCategory(cat: AppCategory) {
+    setIsDeletingCategory(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await fetch(`/api/admin/categories/${cat.id}/`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reassignToCategoryId: reassignTargetCategoryId || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Impossibile eliminare la categoria.");
+
+      startTransition(() => {
+        const remaining = categories
+          .filter((c) => c.id !== cat.id)
+          .map((c) =>
+            data.targetCategoryId && c.id === data.targetCategoryId
+              ? { ...c, count: c.count + (data.movedProducts || 0) }
+              : c,
+          );
+        setCategories(remaining);
+
+        if (data.targetCategoryId) {
+          setProducts((prev) =>
+            prev.map((p) =>
+              p.categoryId === cat.id
+                ? {
+                    ...p,
+                    categoryId: data.targetCategoryId,
+                    categoryName: data.targetCategoryName || p.categoryName,
+                    categorySlug: data.targetCategorySlug || p.categorySlug,
+                  }
+                : p,
+            ),
+          );
+        }
+
+        if (catFilter === cat.id) {
+          setCatFilter("all");
+        }
+        if (form.categoryId === cat.id && remaining[0]) {
+          updateForm(setForm, "categoryId", remaining[0].id);
+        }
+      });
+
+      setDeletingCategoryId(null);
+      setSuccess({
+        message:
+          data.movedProducts > 0
+            ? `Categoria "${cat.name}" eliminata (${data.movedProducts} capi spostati in "${data.targetCategoryName}").`
+            : `Categoria "${cat.name}" eliminata.`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore eliminazione categoria.");
+    } finally {
+      setIsDeletingCategory(false);
     }
   }
 
@@ -884,18 +1024,31 @@ export function AdminProductsManager({
               Gestione Catalogo Prodotti
             </h1>
             <p className="mt-1 text-sm text-white/55">
-              Carica nuovi capi con foto, imposta prezzi e aggiorna le quantità disponibili in tempo reale.
+              Carica nuovi capi con foto, gestisci le categorie, imposta prezzi e aggiorna le quantità in tempo reale.
             </p>
           </div>
-          {!isEditorOpen && (
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={openNewProductEditor}
-              className="cursor-pointer border-2 border-[#e01010] bg-[#e01010] px-6 py-3.5 text-sm font-bold uppercase tracking-[0.18em] text-white shadow-lg transition hover:bg-[#b80d0d]"
+              onClick={() => setIsCategoryManagerOpen((v) => !v)}
+              className={`cursor-pointer border px-4 py-3.5 text-xs font-bold uppercase tracking-[0.18em] transition ${
+                isCategoryManagerOpen
+                  ? "border-amber-400 bg-amber-400/20 text-amber-200"
+                  : "border-white/25 bg-white/8 text-white hover:border-white/50 hover:bg-white/15"
+              }`}
             >
-              + Carica Nuovo Prodotto
+              🏷️ {isCategoryManagerOpen ? "Chiudi Categorie" : `Gestisci Categorie (${categories.length})`}
             </button>
-          )}
+            {!isEditorOpen && (
+              <button
+                type="button"
+                onClick={openNewProductEditor}
+                className="cursor-pointer border-2 border-[#e01010] bg-[#e01010] px-6 py-3.5 text-sm font-bold uppercase tracking-[0.18em] text-white shadow-lg transition hover:bg-[#b80d0d]"
+              >
+                + Carica Nuovo Prodotto
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ── AVVISI DATABASE / STATO ── */}
@@ -946,6 +1099,221 @@ export function AdminProductsManager({
               Chiudi ✕
             </button>
           </div>
+        )}
+
+        {/* ── PANNELLO GESTIONE CATEGORIE (INSERISCI / MODIFICA / ELIMINA) ── */}
+        {isCategoryManagerOpen && (
+          <section className="border-2 border-amber-400/35 bg-[#141414] p-6 shadow-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <span className="inline-block bg-amber-400 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.2em] text-black">
+                  Reparti Store
+                </span>
+                <h2 className="mt-2 text-2xl font-bold text-white">
+                  Gestione Categorie ({categories.length})
+                </h2>
+                <p className="mt-0.5 text-xs text-white/55">
+                  Aggiungi nuove categorie (es. Maglie, Accessori), rinomina quelle esistenti o elimina quelle inutilizzate.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCategoryManagerOpen(false)}
+                className="cursor-pointer border border-white/20 bg-white/5 px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-white/75 hover:bg-white/15 hover:text-white"
+              >
+                ✕ Chiudi
+              </button>
+            </div>
+
+            {/* Form Creazione Nuova Categoria */}
+            {canWrite && (
+              <div className="mt-5 border border-white/12 bg-black/40 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">
+                  + Aggiungi Nuova Categoria
+                </p>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Nome categoria (es. Maglie, Pantaloni, Accessori...)"
+                    className="input-admin sm:w-64"
+                  />
+                  <input
+                    type="text"
+                    value={newCategoryDesc}
+                    onChange={(e) => setNewCategoryDesc(e.target.value)}
+                    placeholder="Descrizione breve per lo store (opzionale)..."
+                    className="input-admin flex-1"
+                  />
+                  <button
+                    type="button"
+                    disabled={isCreatingCategory || !newCategoryName.trim()}
+                    onClick={handleCreateCategory}
+                    className="cursor-pointer bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-[0.18em] text-black transition hover:bg-amber-300 disabled:opacity-40"
+                  >
+                    {isCreatingCategory ? "Creazione…" : "+ Crea Categoria"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista Categorie Esistenti */}
+            <div className="mt-5 divide-y divide-white/10 border border-white/10 bg-[#0d0d0d]">
+              {categories.map((cat) => {
+                const isEditingCat = editingCategoryId === cat.id;
+                const isDeletingCat = deletingCategoryId === cat.id;
+                const otherCats = categories.filter((c) => c.id !== cat.id);
+
+                return (
+                  <div key={cat.id} className="p-4 transition hover:bg-white/[0.02]">
+                    {isEditingCat ? (
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+                          <input
+                            type="text"
+                            value={editCategoryName}
+                            onChange={(e) => setEditCategoryName(e.target.value)}
+                            placeholder="Nome categoria"
+                            className="input-admin sm:w-56"
+                          />
+                          <input
+                            type="text"
+                            value={editCategoryDesc}
+                            onChange={(e) => setEditCategoryDesc(e.target.value)}
+                            placeholder="Descrizione categoria"
+                            className="input-admin flex-1"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={isUpdatingCategory || !editCategoryName.trim()}
+                            onClick={() => handleSaveCategoryEdit(cat.id)}
+                            className="cursor-pointer bg-emerald-400 px-4 py-2 text-xs font-bold uppercase tracking-wider text-black transition hover:bg-emerald-300 disabled:opacity-50"
+                          >
+                            {isUpdatingCategory ? "Salvataggio…" : "✓ Salva"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategoryId(null)}
+                            className="cursor-pointer border border-white/20 px-3 py-2 text-xs text-white/70 hover:text-white"
+                          >
+                            Annulla
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <span className="text-base font-bold text-white">{cat.name}</span>
+                            <span className="border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-white/70">
+                              {cat.count} {cat.count === 1 ? "prodotto" : "prodotti"}
+                            </span>
+                            <span className="font-mono text-[11px] text-white/35">
+                              /{cat.slug}
+                            </span>
+                          </div>
+                          {cat.description && (
+                            <p className="mt-1 truncate text-xs text-white/50">
+                              {cat.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCatFilter((cur) => (cur === cat.id ? "all" : cat.id))
+                            }
+                            className={`cursor-pointer border px-3 py-1.5 text-xs font-semibold transition ${
+                              catFilter === cat.id
+                                ? "border-white bg-white text-black"
+                                : "border-white/15 bg-white/5 text-white/75 hover:border-white/35 hover:text-white"
+                            }`}
+                          >
+                            {catFilter === cat.id ? "Filtro attivo" : "Filtra capi"}
+                          </button>
+
+                          {canWrite && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => beginEditCategory(cat)}
+                                className="cursor-pointer border border-white/20 bg-white/8 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white/20"
+                              >
+                                ✏️ Modifica
+                              </button>
+                              <button
+                                type="button"
+                                disabled={categories.length <= 1}
+                                onClick={() => beginDeleteCategory(cat)}
+                                className="cursor-pointer border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-red-300 transition hover:bg-red-500/25 disabled:opacity-35"
+                                title={
+                                  categories.length <= 1
+                                    ? "Deve rimanere almeno una categoria"
+                                    : "Elimina categoria"
+                                }
+                              >
+                                🗑️ Elimina
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Barra conferma eliminazione categoria */}
+                    {isDeletingCat && (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-red-400/35 bg-red-950/30 p-3">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-red-100">
+                          <span>
+                            Confermi l&apos;eliminazione della categoria{" "}
+                            <strong className="text-white">&ldquo;{cat.name}&rdquo;</strong>?
+                          </span>
+                          {cat.count > 0 && otherCats.length > 0 && (
+                            <label className="flex items-center gap-2">
+                              <span>Sposta i {cat.count} prodotti in:</span>
+                              <select
+                                value={reassignTargetCategoryId}
+                                onChange={(e) => setReassignTargetCategoryId(e.target.value)}
+                                className="input-admin py-1 text-xs"
+                              >
+                                {otherCats.map((other) => (
+                                  <option key={other.id} value={other.id}>
+                                    {other.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={isDeletingCategory}
+                            onClick={() => handleConfirmDeleteCategory(cat)}
+                            className="cursor-pointer bg-red-600 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-red-500 disabled:opacity-50"
+                          >
+                            {isDeletingCategory ? "Eliminazione…" : "Sì, elimina"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingCategoryId(null)}
+                            className="cursor-pointer border border-white/20 px-3 py-1.5 text-xs text-white/75 hover:text-white"
+                          >
+                            Annulla
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         )}
 
         {/* ── EDITOR PRODOTTO GUIDATO (PASSO 1 - 2 - 3) ── */}
@@ -1329,6 +1697,14 @@ export function AdminProductsManager({
                         title="Crea nuova categoria"
                       >
                         + Nuova
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryManagerOpen((v) => !v)}
+                        className="cursor-pointer border border-amber-400/35 bg-amber-400/10 px-2.5 text-xs font-bold text-amber-200 transition hover:bg-amber-400/20"
+                        title="Modifica o elimina categorie"
+                      >
+                        ⚙️ Gestisci
                       </button>
                     </div>
                     {showNewCategory && (

@@ -2,6 +2,7 @@ export const storeCategories = [
   { name: "Jeans", slug: "jeans-2" },
   { name: "Giacche Denim", slug: "giacca-denim" },
   { name: "Felpe", slug: "sweatshirt" },
+  { name: "Maglie", slug: "maglie" },
   { name: "T-Shirt", slug: "t-shirt" },
   { name: "Camicie Denim", slug: "camicia-jeans" },
   { name: "Denim Shorts", slug: "denim-shorts" },

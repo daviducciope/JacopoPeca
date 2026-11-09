@@ -94,6 +94,41 @@ body {
 .home-primary { background: var(--red); color: white; border: 2px solid var(--red); transition: background .2s, border-color .2s; }
 .home-primary:hover { background: var(--red-hover); border-color: var(--red-hover); }
 .home-hero-note { position: absolute; right: 28px; top: 50%; writing-mode: vertical-rl; color: #ccc; font-size: 10px; letter-spacing: .25em; }
+.jp-audio-btn:focus-visible { outline: 2px solid white; outline-offset: 4px; }
+.jp-eq-bar {
+  display: block;
+  width: 2px;
+  background: currentColor;
+  transition: height 0.25s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+.jp-eq.is-muted .jp-eq-bar {
+  height: 3px;
+  opacity: 0.45;
+}
+.jp-audio-btn:hover .jp-eq.is-muted .jp-eq-bar {
+  background: var(--red);
+  opacity: 0.9;
+}
+.jp-eq.is-playing .jp-eq-bar:nth-child(1) {
+  height: 100%;
+  animation: jp-eq-pulse 0.65s ease-in-out infinite alternate;
+}
+.jp-eq.is-playing .jp-eq-bar:nth-child(2) {
+  height: 60%;
+  animation: jp-eq-pulse 0.45s ease-in-out 0.15s infinite alternate;
+}
+.jp-eq.is-playing .jp-eq-bar:nth-child(3) {
+  height: 85%;
+  animation: jp-eq-pulse 0.55s ease-in-out 0.3s infinite alternate;
+}
+.jp-eq.is-playing .jp-eq-bar:nth-child(4) {
+  height: 45%;
+  animation: jp-eq-pulse 0.5s ease-in-out 0.08s infinite alternate;
+}
+@keyframes jp-eq-pulse {
+  0% { height: 22%; }
+  100% { height: 100%; }
+}
 .home-category:hover { background: #202020; }
 .home-category:hover svg { color: var(--red); }
 .home-product:hover h3 { color: #ddd; }

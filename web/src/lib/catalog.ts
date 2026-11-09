@@ -90,6 +90,12 @@ export const categories: CatalogCategory[] = [
     "name": "Pantaloni",
     "count": 2,
     "description": "Pantaloni con taglio e lavorazione handmade."
+  },
+  {
+    "slug": "maglie",
+    "name": "Maglie",
+    "count": 0,
+    "description": "Maglie lavorate e personalizzate a mano in laboratorio."
   }
 ];
 

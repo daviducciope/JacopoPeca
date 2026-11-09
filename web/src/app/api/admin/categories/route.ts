@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createAdminCategory } from "@/lib/product-data";
+import { createAdminCategory, getStorefrontCategories } from "@/lib/product-data";
 import { isDatabaseConfigured } from "@/lib/prisma";
 
 const createCategorySchema = z.object({
   name: z.string().trim().min(2, "Inserisci almeno 2 caratteri per il nome categoria.").max(60),
   description: z.string().trim().max(300).optional(),
 });
+
+export async function GET() {
+  const categories = await getStorefrontCategories();
+  return NextResponse.json({ categories });
+}
 
 export async function POST(request: Request) {
   if (!isDatabaseConfigured) {
@@ -38,8 +43,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Unable to create category:", error);
     return NextResponse.json(
-      { error: "Impossibile creare la categoria." },
-      { status: 500 },
+      { error: error instanceof Error ? error.message : "Impossibile creare la categoria." },
+      { status: 400 },
     );
   }
 }
