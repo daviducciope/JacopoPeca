@@ -57,6 +57,7 @@ model Product {
   categoryId     String
   category       Category         @relation(fields: [categoryId], references: [id])
   images         ProductImage[]
+  videos         ProductVideo[]
   variants       ProductVariant[]
   orderItems     OrderItem[]
 }
@@ -67,6 +68,16 @@ model ProductImage {
   alt        String
   width      Int?
   height     Int?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductVideo {
+  id         String   @id @default(cuid())
+  url        String
+  posterUrl  String?
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   productId  String

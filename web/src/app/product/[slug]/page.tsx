@@ -355,6 +355,7 @@ export default async function ProductPage({
           <div className="lg:col-span-7 lg:sticky lg:top-24 lg:self-start">
             <ProductGallery
               images={product.images}
+              videos={product.videos}
               productName={product.name}
               categoryName={product.categoryName}
               categorySlug={product.categorySlug}

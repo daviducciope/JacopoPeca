@@ -9,8 +9,11 @@ export const dynamic = "force-dynamic";
 
 const uploadSchema = z.object({
   filename: z.string().trim().min(1).max(180),
-  contentType: z.string().trim().regex(/^image\/(jpeg|jpg|png|webp|gif|avif|heic|heif)$/),
-  size: z.number().int().positive().max(25 * 1024 * 1024),
+  contentType: z
+    .string()
+    .trim()
+    .regex(/^(image\/(jpeg|jpg|png|webp|gif|avif|heic|heif)|video\/(mp4|quicktime|webm|x-m4v|3gpp))$/),
+  size: z.number().int().positive().max(300 * 1024 * 1024),
 });
 
 function getPublicUrl(bucket: string, region: string, key: string) {
@@ -22,10 +25,13 @@ function getPublicUrl(bucket: string, region: string, key: string) {
   return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
 
-function sanitizeExtension(filename: string) {
+function sanitizeExtension(filename: string, contentType: string) {
   const ext = path.extname(filename).toLowerCase();
-  if ([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"].includes(ext)) {
+  if ([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".mp4", ".mov", ".webm", ".m4v", ".3gp"].includes(ext)) {
     return ext;
+  }
+  if (contentType.startsWith("video/")) {
+    return contentType.includes("quicktime") ? ".mov" : contentType.includes("webm") ? ".webm" : ".mp4";
   }
 
   return ".jpg";
@@ -54,8 +60,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "File immagine non valido.", details: result.error.flatten() }, { status: 400 });
   }
 
-  const extension = sanitizeExtension(result.data.filename);
-  const key = `products/${new Date().getUTCFullYear()}/${randomUUID()}${extension}`;
+  const extension = sanitizeExtension(result.data.filename, result.data.contentType);
+  const folder = result.data.contentType.startsWith("video/") ? "products/videos" : "products";
+  const key = `${folder}/${new Date().getUTCFullYear()}/${randomUUID()}${extension}`;
   // requestChecksumCalculation: WHEN_REQUIRED prevents the SDK from adding
   // x-amz-checksum-crc32 to presigned URLs — that header makes browser PUTs
   // fail because the browser can't compute or forward the checksum.

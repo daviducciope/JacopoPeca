@@ -16,8 +16,11 @@ function getPublicUrl(bucket: string, region: string, key: string) {
 
 function sanitizeExtension(filename: string, contentType: string) {
   const ext = path.extname(filename).toLowerCase();
-  if ([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"].includes(ext)) {
+  if ([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".mp4", ".mov", ".webm", ".m4v", ".3gp"].includes(ext)) {
     return ext === ".jpeg" ? ".jpg" : ext;
+  }
+  if (contentType.startsWith("video/")) {
+    return contentType.includes("quicktime") ? ".mov" : contentType.includes("webm") ? ".webm" : ".mp4";
   }
   if (contentType.includes("png")) return ".png";
   if (contentType.includes("webp")) return ".webp";
@@ -39,9 +42,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Nessun file immagine ricevuto." }, { status: 400 });
   }
 
-  if (file.size <= 0 || file.size > 25 * 1024 * 1024) {
+  const isVideo = (file.type || "").startsWith("video/");
+  const maxBytes = isVideo ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
+  if (file.size <= 0 || file.size > maxBytes) {
     return NextResponse.json(
-      { error: "Il file supera il limite massimo di 25 MB." },
+      { error: `Il file supera il limite massimo di ${isVideo ? 100 : 25} MB.` },
       { status: 400 },
     );
   }
@@ -50,7 +55,7 @@ export async function POST(request: Request) {
   const extension = sanitizeExtension(file.name || "photo.jpg", contentType);
   const year = new Date().getUTCFullYear();
   const filename = `${randomUUID()}${extension}`;
-  const key = `products/${year}/${filename}`;
+  const key = `${isVideo ? "products/videos" : "products"}/${year}/${filename}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const region = process.env.AWS_REGION;
@@ -80,15 +85,15 @@ export async function POST(request: Request) {
 
   // Fallback: save locally in public/uploads/products/<year>/
   try {
-    const relativeDir = path.join("uploads", "products", String(year));
+    const relativeDir = path.join("uploads", "products", ...(isVideo ? ["videos"] : []), String(year));
     const publicDir = path.join(process.cwd(), "public", relativeDir);
     await mkdir(publicDir, { recursive: true });
     const filePath = path.join(publicDir, filename);
     await writeFile(filePath, buffer);
 
     return NextResponse.json({
-      publicUrl: `/uploads/products/${year}/${filename}`,
-      key: `uploads/products/${year}/${filename}`,
+      publicUrl: `/uploads/products/${isVideo ? "videos/" : ""}${year}/${filename}`,
+      key: `uploads/products/${isVideo ? "videos/" : ""}${year}/${filename}`,
     });
   } catch (error) {
     console.error("Local file upload failed:", error);

@@ -60,6 +60,11 @@ Copy `web/.env.example`. Required at runtime:
 
 Routes under `/admin` and `/api/admin` are protected by HTTP Basic Auth in `web/middleware.ts`. The admin CRUD UI is in `src/app/admin/` and calls `/api/admin/products`.
 
+### Admin: foto e video prodotto
+
+- `AdminProductsManager` ha un selettore **Con filtri / Originale** (persistito in `localStorage` `jp-admin-photo-mode`): "studio" usa `processPhonePhotoForWeb` (WebP 4:5), "originale" carica la foto senza ritocchi (solo HEIC/>12 MB convertite in JPG). Pulsanti "Scatta foto" (`capture`) e "Dalla galleria"; max 3 upload in parallelo.
+- Video: modello Prisma `ProductVideo` (url, posterUrl, sortOrder; migration `20261112100000_product_videos`), max 6 per prodotto, 300 MB (presign S3 con progress; fallback `/api/admin/uploads/direct` max 100 MB). La copertina è estratta dal browser. Mostrati in `ProductGallery`. Dopo il deploy applicare la migration (`prisma migrate deploy` / `db:push`).
+
 ### Key Lib Files
 
 | File | Purpose |

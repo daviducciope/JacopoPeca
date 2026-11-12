@@ -18,6 +18,13 @@ export type AppProductImage = {
   isThumbnail: boolean;
 };
 
+export type AppProductVideo = {
+  id: string;
+  url: string;
+  posterUrl: string | null;
+  sortOrder: number;
+};
+
 export type AppProductSize = {
   id: string;
   label: string;
@@ -40,6 +47,7 @@ export type AppProduct = {
   categorySlug: string;
   categoryName: string;
   images: AppProductImage[];
+  videos: AppProductVideo[];
   sizes: AppProductSize[];
   createdAt: string;
   status: ProductStatus | "ACTIVE";
@@ -109,6 +117,11 @@ const productWithRelations = {
         sortOrder: "asc",
       },
     },
+    videos: {
+      orderBy: {
+        sortOrder: "asc",
+      },
+    },
     variants: {
       orderBy: {
         size: "asc",
@@ -124,6 +137,12 @@ const adminImageSchema = z.object({
   alt: z.string().trim().max(200).optional().default(""),
   width: z.number().int().positive().nullable().optional(),
   height: z.number().int().positive().nullable().optional(),
+  sortOrder: z.number().int().min(0).optional().default(0),
+});
+
+const adminVideoSchema = z.object({
+  url: z.string().trim().min(1),
+  posterUrl: z.string().trim().nullable().optional(),
   sortOrder: z.number().int().min(0).optional().default(0),
 });
 
@@ -150,6 +169,7 @@ export const adminProductSchema = z.object({
   seoTitle: z.string().trim().max(120).optional().default(""),
   seoDescription: z.string().trim().max(250).optional().default(""),
   images: z.array(adminImageSchema).min(1, "Carica almeno una foto del prodotto."),
+  videos: z.array(adminVideoSchema).max(6, "Massimo 6 video per prodotto.").optional().default([]),
   variants: z.array(adminVariantSchema).min(1, "Inserisci almeno una taglia."),
 });
 
@@ -187,6 +207,7 @@ function toFallbackProduct(product: (typeof fallbackProducts)[number]): AppProdu
       sortOrder: index,
       isThumbnail: image.isThumbnail || index === 0,
     })),
+    videos: [],
     sizes: product.sizes.map((size, index) => ({
       id: `${product.id}-size-${index}`,
       label: size.label,
@@ -248,6 +269,12 @@ function toAppProduct(product: ProductWithRelations): AppProduct {
       height: image.height,
       sortOrder: image.sortOrder,
       isThumbnail: index === 0,
+    })),
+    videos: product.videos.map((video, index) => ({
+      id: video.id,
+      url: video.url,
+      posterUrl: video.posterUrl,
+      sortOrder: video.sortOrder ?? index,
     })),
     sizes,
     createdAt: product.createdAt.toISOString(),
@@ -600,6 +627,14 @@ function buildImages(input: AdminProductInput) {
   }));
 }
 
+function buildVideos(input: AdminProductInput) {
+  return input.videos.map((video, index) => ({
+    url: video.url,
+    posterUrl: video.posterUrl || null,
+    sortOrder: video.sortOrder ?? index,
+  }));
+}
+
 async function ensureUniqueProductSlug(
   desiredSlug: string,
   productName: string,
@@ -716,6 +751,9 @@ export async function createAdminProduct(input: AdminProductInput) {
       images: {
         create: buildImages(input),
       },
+      videos: {
+        create: buildVideos(input),
+      },
       variants: {
         create: variants,
       },
@@ -745,6 +783,10 @@ export async function updateAdminProduct(productId: string, input: AdminProductI
       images: {
         deleteMany: {},
         create: buildImages(input),
+      },
+      videos: {
+        deleteMany: {},
+        create: buildVideos(input),
       },
       variants: {
         deleteMany: {},

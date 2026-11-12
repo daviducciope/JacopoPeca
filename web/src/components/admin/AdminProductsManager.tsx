@@ -9,6 +9,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import {
   buildDefaultStudioSettings,
   formatFileSize,
+  loadImageElement,
   PHOTO_FRAME_MODES,
   PHOTO_PRESETS,
   PhotoStudioModal,
@@ -51,6 +52,92 @@ type ImageFormRow = {
   studioSettings?: PhotoStudioSettings;
 };
 
+type VideoFormRow = {
+  localId: string;
+  url: string;
+  posterUrl: string;
+  uploading?: boolean;
+  progress?: number;
+  fileName?: string;
+  sizeBytes?: number;
+};
+
+type PhotoMode = "studio" | "original";
+
+const MAX_VIDEO_MB = 300;
+const PHOTO_MODE_STORAGE_KEY = "jp-admin-photo-mode";
+
+/** Foto "Originale": nessun filtro, nessun ritaglio. Solo HEIC/enormi vengono convertiti in JPG fedele. */
+async function processOriginalPhoto(
+  file: File,
+): Promise<{ file: File; width: number | null; height: number | null }> {
+  const browserSafe = /^image\/(jpeg|png|webp|gif|avif)$/.test(file.type);
+  let img: HTMLImageElement | null = null;
+  try {
+    img = await loadImageElement(file);
+  } catch {
+    if (browserSafe) return { file, width: null, height: null };
+    throw new Error("Formato foto non leggibile dal browser. Prova a scattarla di nuovo in JPG.");
+  }
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const tooBig = file.size > 12 * 1024 * 1024 || Math.max(w, h) > 4000;
+  if (browserSafe && !tooBig) return { file, width: w, height: h };
+
+  const scale = Math.min(1, 3200 / Math.max(w, h));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(w * scale);
+  canvas.height = Math.round(h * scale);
+  canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+  if (!blob) return { file, width: w, height: h };
+  const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+  return { file: new File([blob], name, { type: "image/jpeg" }), width: canvas.width, height: canvas.height };
+}
+
+/** Estrae un fotogramma dal video da usare come copertina. */
+async function captureVideoPoster(file: File): Promise<File | null> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.src = objectUrl;
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("timeout")), 8000);
+      video.onloadeddata = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      video.onerror = () => {
+        clearTimeout(timer);
+        reject(new Error("video"));
+      };
+    });
+    video.currentTime = Math.min(0.5, (video.duration || 1) / 2);
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 3000);
+      video.onseeked = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+    });
+    const scale = Math.min(1, 1080 / Math.max(video.videoWidth, video.videoHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    if (!canvas.width || !canvas.height) return null;
+    canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    return blob ? new File([blob], "poster.jpg", { type: "image/jpeg" }) : null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 type VariantFormRow = {
   localId: string;
   sku: string;
@@ -75,6 +162,7 @@ type ProductFormState = {
   seoTitle: string;
   seoDescription: string;
   images: ImageFormRow[];
+  videos: VideoFormRow[];
   variants: VariantFormRow[];
 };
 
@@ -126,6 +214,7 @@ export function AdminProductsManager({
   // Automatic Phone Photo Studio pipeline settings
   const [autoPhotoPreset, setAutoPhotoPreset] = useState<PhotoPresetId>("auto_studio");
   const [autoFrameMode, setAutoFrameMode] = useState<PhotoFrameMode>("smart_4_5");
+  const [photoMode, setPhotoMode] = useState<PhotoMode>("studio");
   const [studioEditingImageId, setStudioEditingImageId] = useState<string | null>(null);
 
   // Category Management (Create / Edit / Delete)
@@ -163,9 +252,30 @@ export function AdminProductsManager({
   // Delete confirmation
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(PHOTO_MODE_STORAGE_KEY);
+      if (saved === "studio" || saved === "original") setPhotoMode(saved);
+    } catch {
+      // storage non disponibile: resta il default
+    }
+  }, []);
+
+  function changePhotoMode(mode: PhotoMode) {
+    setPhotoMode(mode);
+    try {
+      window.localStorage.setItem(PHOTO_MODE_STORAGE_KEY, mode);
+    } catch {
+      // ignora
+    }
+  }
+
   const slugManualRef = useRef(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const videoCameraInputRef = useRef<HTMLInputElement>(null);
 
   const deferredSearch = useDeferredValue(search);
   const normalizedSearch = deferredSearch.trim().toLowerCase();
@@ -517,12 +627,15 @@ export function AdminProductsManager({
       return { ...current, images: merged };
     });
 
-    // Process & upload all selected files in parallel
-    await Promise.all(
-      files.map((file, idx) =>
-        uploadSingleFile(newPlaceholders[idx].localId, file, activeStudioSettings),
-      ),
-    );
+    // Elabora e carica al massimo 3 foto alla volta (stabile su telefoni e reti mobili)
+    let next = 0;
+    const worker = async () => {
+      while (next < files.length) {
+        const idx = next++;
+        await uploadSingleFile(newPlaceholders[idx].localId, files[idx], activeStudioSettings);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, files.length) }, worker));
   }
 
   async function uploadSingleFile(
@@ -531,6 +644,23 @@ export function AdminProductsManager({
     studioSettings: PhotoStudioSettings,
   ) {
     try {
+      if (photoMode === "original") {
+        const original = await processOriginalPhoto(rawFile);
+        const publicUrl = await uploadFileToStorage(original.file);
+        setForm((current) =>
+          updateImageRow(current, localId, {
+            url: publicUrl,
+            width: original.width,
+            height: original.height,
+            uploading: false,
+            rawFile,
+            originalSizeBytes: rawFile.size,
+            outputSizeBytes: original.file.size,
+            formatLabel: undefined,
+          }),
+        );
+        return;
+      }
       const processed = await processPhonePhotoForWeb(rawFile, studioSettings);
       const publicUrl = await uploadFileToStorage(processed.file);
 
@@ -586,6 +716,120 @@ export function AdminProductsManager({
     }
   }
 
+  function uploadVideoWithProgress(file: File, onProgress: (pct: number) => void): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const contentType = file.type || "video/mp4";
+      fetch("/api/admin/uploads/presign/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentType, size: file.size }),
+      })
+        .then(async (res) => ({ ok: res.ok, data: await res.json() }))
+        .then(({ ok, data }) => {
+          if (!ok) throw new Error(data.error || "presign");
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", data.uploadUrl);
+          xhr.setRequestHeader("Content-Type", contentType);
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+          };
+          xhr.onload = () =>
+            xhr.status >= 200 && xhr.status < 300
+              ? resolve(data.publicUrl as string)
+              : reject(new Error("Errore durante il trasferimento del video."));
+          xhr.onerror = () => reject(new Error("Connessione interrotta durante il caricamento del video."));
+          xhr.send(file);
+        })
+        .catch(async () => {
+          // Fallback: upload diretto lato server (storage locale o S3 non raggiungibile dal browser)
+          try {
+            if (file.size > 100 * 1024 * 1024) {
+              throw new Error("Video troppo grande per il caricamento diretto (max 100 MB).");
+            }
+            const url = await uploadFileToStorage(file);
+            onProgress(100);
+            resolve(url);
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error("Upload video non riuscito."));
+          }
+        });
+    });
+  }
+
+  async function handleVideosSelected(fileList: FileList | File[]) {
+    const files = Array.from(fileList).filter(
+      (f) => f.type.startsWith("video/") || /\.(mp4|mov|m4v|webm|3gp)$/i.test(f.name),
+    );
+    if (files.length === 0) {
+      setError("Seleziona file video validi (MP4, MOV, WEBM).");
+      return;
+    }
+    const tooBig = files.find((f) => f.size > MAX_VIDEO_MB * 1024 * 1024);
+    if (tooBig) {
+      setError(`Il video "${tooBig.name}" supera il limite di ${MAX_VIDEO_MB} MB.`);
+      return;
+    }
+    setError(null);
+
+    const rows: VideoFormRow[] = files.map((file) => ({
+      localId: genId(),
+      url: "",
+      posterUrl: "",
+      uploading: true,
+      progress: 0,
+      fileName: file.name,
+      sizeBytes: file.size,
+    }));
+    setForm((current) => ({ ...current, videos: [...current.videos, ...rows] }));
+
+    // Un video alla volta: i file sono grandi e la rete mobile è limitata
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const id = rows[i].localId;
+      try {
+        const poster = await captureVideoPoster(file);
+        const url = await uploadVideoWithProgress(file, (pct) =>
+          setForm((cur) => ({
+            ...cur,
+            videos: cur.videos.map((v) => (v.localId === id ? { ...v, progress: pct } : v)),
+          })),
+        );
+        let posterUrl = "";
+        if (poster) {
+          try {
+            posterUrl = await uploadFileToStorage(poster);
+          } catch {
+            posterUrl = "";
+          }
+        }
+        setForm((cur) => ({
+          ...cur,
+          videos: cur.videos.map((v) =>
+            v.localId === id ? { ...v, url, posterUrl, uploading: false, progress: 100 } : v,
+          ),
+        }));
+      } catch (err) {
+        setForm((cur) => ({ ...cur, videos: cur.videos.filter((v) => v.localId !== id) }));
+        setError(err instanceof Error ? err.message : "Errore durante il caricamento del video.");
+      }
+    }
+  }
+
+  function removeVideo(localId: string) {
+    setForm((cur) => ({ ...cur, videos: cur.videos.filter((v) => v.localId !== localId) }));
+  }
+
+  function moveVideo(localId: string, dir: -1 | 1) {
+    setForm((cur) => {
+      const idx = cur.videos.findIndex((v) => v.localId === localId);
+      const target = idx + dir;
+      if (idx < 0 || target < 0 || target >= cur.videos.length) return cur;
+      const videos = [...cur.videos];
+      [videos[idx], videos[target]] = [videos[target], videos[idx]];
+      return { ...cur, videos };
+    });
+  }
+
   function handleAddManualUrl() {
     const trimmed = manualImageUrl.trim();
     if (!trimmed) return;
@@ -627,8 +871,8 @@ export function AdminProductsManager({
     }
 
     const validImages = form.images.filter((img) => img.url.trim() && !img.uploading);
-    if (form.images.some((img) => img.uploading)) {
-      setError("Attendi il completamento del caricamento delle foto prima di salvare.");
+    if (form.images.some((img) => img.uploading) || form.videos.some((v) => v.uploading)) {
+      setError("Attendi il completamento del caricamento di foto e video prima di salvare.");
       return;
     }
     if (validImages.length === 0) {
@@ -828,6 +1072,11 @@ export function AdminProductsManager({
               sortOrder: img.sortOrder ?? i,
             }))
           : [],
+      videos: (product.videos ?? []).map((v) => ({
+        localId: v.id || genId(),
+        url: v.url,
+        posterUrl: v.posterUrl ?? "",
+      })),
       variants:
         product.sizes.length > 0
           ? product.sizes.map((s) => ({
@@ -878,6 +1127,11 @@ export function AdminProductsManager({
         width: img.width,
         height: img.height,
         sortOrder: i,
+      })),
+      videos: (product.videos ?? []).map((v) => ({
+        localId: genId(),
+        url: v.url,
+        posterUrl: v.posterUrl ?? "",
       })),
       variants:
         product.sizes.length > 0
@@ -1359,7 +1613,7 @@ export function AdminProductsManager({
                     <div>
                       <h3 className="text-lg font-bold text-white">Foto del Prodotto *</h3>
                       <p className="text-xs text-white/50">
-                        Scatta o carica dal telefono: vengono convertite in automatico in WebP HD e ottimizzate per la vetrina.
+                        Scatta o carica dal telefono. Scegli se applicare filtri e miglioramenti automatici oppure tenere le foto originali.
                       </p>
                     </div>
                   </div>
@@ -1372,7 +1626,41 @@ export function AdminProductsManager({
                   </button>
                 </div>
 
-                {/* ── BARRA OTTIMIZZAZIONE AUTOMATICA FOTO DA TELEFONO ── */}
+                {/* ── SELETTORE MODALITÀ FOTO ── */}
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => changePhotoMode("studio")}
+                    aria-pressed={photoMode === "studio"}
+                    className={`cursor-pointer border p-3 text-left transition ${
+                      photoMode === "studio"
+                        ? "border-emerald-400 bg-emerald-500/20"
+                        : "border-white/15 bg-black/40 hover:border-white/35"
+                    }`}
+                  >
+                    <span className="block text-sm font-bold text-white">✨ Con filtri e miglioramenti</span>
+                    <span className="mt-0.5 block text-[11px] text-white/60">
+                      Luce, nitidezza, ritaglio 4:5 e WebP leggero. Consigliato per foto veloci da telefono.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changePhotoMode("original")}
+                    aria-pressed={photoMode === "original"}
+                    className={`cursor-pointer border p-3 text-left transition ${
+                      photoMode === "original"
+                        ? "border-white bg-white/15"
+                        : "border-white/15 bg-black/40 hover:border-white/35"
+                    }`}
+                  >
+                    <span className="block text-sm font-bold text-white">📷 Originale, senza filtri</span>
+                    <span className="mt-0.5 block text-[11px] text-white/60">
+                      La foto resta come l&apos;hai scattata (niente ritocchi né ritagli). Solo HEIC/foto enormi vengono convertite in JPG.
+                    </span>
+                  </button>
+                </div>
+
+                {photoMode === "studio" && (
                 <div className="mt-4 border border-emerald-400/30 bg-emerald-950/15 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1444,6 +1732,38 @@ export function AdminProductsManager({
                     </div>
                   </div>
                 </div>
+                )}
+
+                {/* Pulsanti rapidi per telefono */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="cursor-pointer border border-white bg-white px-3 py-4 text-sm font-bold uppercase tracking-wider text-black transition hover:bg-white/90"
+                  >
+                    📸 Scatta foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="cursor-pointer border border-white/30 bg-white/5 px-3 py-4 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-white/15"
+                  >
+                    🖼️ Dalla galleria
+                  </button>
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      if (e.target.files?.length) {
+                        void handleFilesSelected(e.target.files);
+                        e.target.value = "";
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </div>
 
                 {/* Dropzone grande e intuitiva */}
                 <div
@@ -1484,7 +1804,7 @@ export function AdminProductsManager({
                     Clicca qui per scattare o scegliere le foto dal telefono (oppure trascinale qui)
                   </p>
                   <p className="mt-1 text-xs text-white/55">
-                    Conversione istantanea in <strong className="text-white">WebP HD (4:5 Shop)</strong> con correzione luce da laboratorio e nitidezza cuciture/denim
+                    Modalità attiva: <strong className="text-white">{photoMode === "studio" ? "con filtri (WebP HD 4:5)" : "originale, senza filtri"}</strong>
                   </p>
                   <span className="mt-4 inline-block border border-white/30 bg-white px-5 py-2 text-xs font-bold uppercase tracking-[0.16em] text-black transition hover:bg-white/90">
                     Sfoglia o Scatta Foto dal Telefono
@@ -1650,6 +1970,101 @@ export function AdminProductsManager({
                     })}
                   </div>
                 )}
+
+                {/* ── VIDEO DEL PRODOTTO (opzionale) ── */}
+                <div className="mt-6 border border-white/12 bg-black/30 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-white">🎬 Video del prodotto (opzionale)</h4>
+                      <p className="text-[11px] text-white/50">
+                        MP4/MOV dal telefono, max {MAX_VIDEO_MB} MB l&apos;uno (fino a 6). Viene creata in automatico la copertina.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => videoCameraInputRef.current?.click()}
+                        className="cursor-pointer border border-white bg-white px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-black"
+                      >
+                        🎥 Registra
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => videoInputRef.current?.click()}
+                        className="cursor-pointer border border-white/30 bg-white/5 px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/15"
+                      >
+                        📁 Scegli video
+                      </button>
+                    </div>
+                    <input
+                      ref={videoCameraInputRef}
+                      type="file"
+                      accept="video/*"
+                      capture="environment"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        if (e.target.files?.length) {
+                          void handleVideosSelected(e.target.files);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      multiple
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        if (e.target.files?.length) {
+                          void handleVideosSelected(e.target.files);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {form.videos.length > 0 && (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {form.videos.map((v, i) => (
+                        <div key={v.localId} className="border border-white/12 bg-black/40 p-2">
+                          <div className="relative aspect-4/5 w-full overflow-hidden bg-[#141414]">
+                            {v.url && !v.uploading ? (
+                              <video
+                                src={v.url}
+                                poster={v.posterUrl || undefined}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center">
+                                <span className="text-xs font-bold text-white">
+                                  Caricamento… {v.progress ?? 0}%
+                                </span>
+                                <div className="h-1.5 w-full bg-white/15">
+                                  <div className="h-full bg-emerald-400" style={{ width: `${v.progress ?? 0}%` }} />
+                                </div>
+                                <span className="truncate text-[10px] text-white/50">{v.fileName}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-2 flex items-center justify-between gap-1 text-[11px]">
+                            <span className="text-white/50">
+                              {v.sizeBytes ? formatFileSize(v.sizeBytes) : `Video ${i + 1}`}
+                            </span>
+                            <div className="flex gap-1">
+                              <button type="button" disabled={i === 0} onClick={() => moveVideo(v.localId, -1)} className="cursor-pointer border border-white/20 px-2 py-1 text-white disabled:opacity-30">←</button>
+                              <button type="button" disabled={i === form.videos.length - 1} onClick={() => moveVideo(v.localId, 1)} className="cursor-pointer border border-white/20 px-2 py-1 text-white disabled:opacity-30">→</button>
+                              <button type="button" onClick={() => removeVideo(v.localId)} className="cursor-pointer border border-red-400/40 px-2 py-1 text-red-300">✕</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </section>
 
               {/* ── PASSO 2: INFORMAZIONI PRINCIPALI ── */}
@@ -2746,6 +3161,7 @@ function buildEmptyForm(categories: AppCategory[], databaseEnabled: boolean): Pr
     seoTitle: "",
     seoDescription: "",
     images: [],
+    videos: [],
     variants: [emptyVariantRow()],
   };
 }
@@ -2855,6 +3271,13 @@ function buildPayload(form: ProductFormState, categories: AppCategory[]) {
         alt: img.alt.trim() || form.name.trim(),
         width: img.width,
         height: img.height,
+        sortOrder: i,
+      })),
+    videos: form.videos
+      .filter((v) => v.url.trim() && !v.uploading)
+      .map((v, i) => ({
+        url: v.url.trim(),
+        posterUrl: v.posterUrl.trim() || null,
         sortOrder: i,
       })),
     variants: form.variants.map((v) => ({

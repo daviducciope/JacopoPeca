@@ -12,8 +12,15 @@ export interface GalleryImage {
   isThumbnail?: boolean;
 }
 
+export interface GalleryVideo {
+  id?: string;
+  url: string;
+  posterUrl?: string | null;
+}
+
 interface ProductGalleryProps {
   images: GalleryImage[];
+  videos?: GalleryVideo[];
   productName: string;
   categoryName: string;
   categorySlug?: string;
@@ -23,6 +30,7 @@ interface ProductGalleryProps {
 
 export default function ProductGallery({
   images,
+  videos = [],
   productName,
   categoryName,
   categorySlug,
@@ -186,6 +194,24 @@ export default function ProductGallery({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Video del prodotto */}
+      {videos.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {videos.map((video, idx) => (
+            <video
+              key={video.id ?? `${video.url}-${idx}`}
+              src={video.url}
+              poster={video.posterUrl ?? undefined}
+              controls
+              playsInline
+              preload="none"
+              aria-label={`Video ${idx + 1} di ${productName}`}
+              className="aspect-4/5 w-full border border-white/15 bg-black object-cover"
+            />
+          ))}
         </div>
       )}
 
